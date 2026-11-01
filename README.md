@@ -2,6 +2,14 @@
 
 A local single-player falling-block game built with React, TypeScript, Vite and HTML5 Canvas.
 
+## Players and local multiplayer
+
+Choose or create a named profile in the lobby. Each profile stores its own preferences, keyboard mapping and personal best in this browser. Existing Prism settings and high scores migrate into the first profile. Guests are temporary and are never written to the profile store. Clearing browser data removes saved profiles; profiles are not authenticated accounts or synced across devices.
+
+Select a second player (another saved profile or Guest) to open two boards. Start a round to alternate turns after every placed piece. Only the active board advances or accepts game input. Both scores stay visible. When one player tops out, the other continues until their board is also finished. Pause and settings pause the shared session. Different difficulty preferences are allowed; this mode is for friendly score comparison.
+
+Under each player's Settings → Controls, select an action and press a replacement key. Duplicate bindings within a profile are rejected; Escape cancels remapping. Escape also pauses during play. Returning to the lobby resets boards; saved preferences and best scores remain. Guest data is discarded when leaving the session.
+
 ## Run
 
 ```sh
