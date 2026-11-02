@@ -1,0 +1,17 @@
+services:
+  tetris:
+    image: tetris-local:latest
+    build:
+      context: .
+      args:
+        VITE_LOG_LEVEL: ${VITE_LOG_LEVEL:-INFO}
+    ports:
+      - "127.0.0.1:${TETRIS_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

@@ -22,7 +22,30 @@ Unhandled browser errors, unhandled promise rejections and React root errors are
 
 Set `VITE_LOG_LEVEL=DEBUG`, `INFO`, `WARN` or `ERROR` in `.env.local` (see `.env.example`), then restart Vite or rebuild production assets. INFO is the default; invalid values fall back to INFO. For a browser-specific override, run `localStorage.setItem('tetris-log-level', 'DEBUG')` in the developer console and reload. Remove that key to restore the build setting. DEBUG includes INFO/WARN/ERROR; ERROR shows only errors. Each full page load starts a new session ID; named player IDs remain stable across reloads and Guest IDs are temporary.
 
-## Run
+## Docker
+
+Install and start Docker Desktop with Linux containers (or Docker Engine with the Compose plugin). No host Java, Node or Gradle installation is needed for this workflow.
+
+```sh
+docker compose up --build -d
+docker compose ps
+```
+
+Open [Tetris](http://localhost:8080) or the [roadmap](http://localhost:8080/roadmap.html). Stop with `docker compose down`. Rebuild after source changes with `docker compose up --build -d`. View server logs with `docker compose logs -f tetris`; browser game lifecycle logs remain in the browser console.
+
+The multi-stage image uses Node 22 and Java 21 to run the pinned Gradle Wrapper, including all tests and the production build. Only compiled assets, the roadmap and Nginx are included in the final image. Nginx runs as a non-root user on port 8080 with a health check, a read-only filesystem and temporary files in `/tmp`. Compose exposes it only on this machine's loopback interface. Build caches speed up dependency downloads; `.dockerignore` excludes host dependencies, Git data and local environment files.
+
+Optional PowerShell configuration before building:
+
+```powershell
+$env:TETRIS_PORT = '8081'      # Host port; container still uses 8080
+$env:VITE_LOG_LEVEL = 'WARN'   # Compiled into browser assets at build time
+docker compose up --build -d
+```
+
+Browser profiles remain in localStorage, not a container volume. A different hostname or port is a different browser origin: profiles at `127.0.0.1:5173` will not automatically appear at `localhost:8080`. Container recreation preserves profiles at the same origin, unless browser data is cleared. This is static local hosting; it does not add accounts, cloud storage or network multiplayer. This configuration is for local HTTP use; a public deployment would also need TLS and suitable hosting configuration.
+
+## Local development with Gradle
 
 Use the committed Gradle Wrapper. Prerequisites: Java 17+ (Java 21 recommended), Node.js 22.6+ and npm available on PATH. Gradle 9.6.0 is pinned by the wrapper; a separate Gradle installation is unnecessary. The first run on a new machine downloads Gradle and the locked npm dependencies.
 
@@ -46,5 +69,6 @@ Arrow keys move, rotate and soft-drop. Space hard-drops, C holds, and P or Escap
 Use **Make it yours** to choose dark/light appearance, three piece palettes, starting difficulty 1–10, animations, grid, ghost piece, sound and volume. Preferences, profile name and personal best are saved in this browser using localStorage. These settings belong to one local profile; clearing browser data clears them. No backend, account or multiplayer is used. Line sounds are synthesized with Web Audio. Fonts fall back to system sans-serif without network access.
 
 Scoring: 100/300/500/800 × level for clearing 1/2/3/4 lines, 1 per soft-drop cell and 2 per hard-drop cell. Speed increases every 10 lines to level 10. Pieces use a shuffled seven-bag randomizer.
+
 
 

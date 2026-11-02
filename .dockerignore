@@ -1,0 +1,13 @@
+.git
+.gradle
+build
+dist
+node_modules
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+.idea
+.vscode
+coverage
