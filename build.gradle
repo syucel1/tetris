@@ -1,0 +1,60 @@
+plugins {
+    id 'base'
+}
+
+// React/TypeScript still compile with Vite; Gradle owns the build lifecycle.
+def npmCommand = { List<String> arguments ->
+    def windows = System.getProperty('os.name').toLowerCase().contains('windows')
+    windows ? ['cmd', '/d', '/c', 'npm'] + arguments : ['npm'] + arguments
+}
+
+tasks.register('npmInstall', Exec) {
+    group = 'build setup'
+    description = 'Install the exact frontend dependencies from package-lock.json.'
+    workingDir = projectDir
+    commandLine npmCommand(['ci', '--no-audit', '--no-fund'])
+    inputs.files('package.json', 'package-lock.json')
+    outputs.file('node_modules/.package-lock.json')
+}
+
+tasks.register('test', Exec) {
+    group = 'verification'
+    description = 'Run the game, profile, logging and metrics tests.'
+    dependsOn 'npmInstall'
+    workingDir = projectDir
+    commandLine npmCommand(['test'])
+}
+
+tasks.register('frontendBuild', Exec) {
+    group = 'build'
+    description = 'Type-check TypeScript and compile the production app into dist/.'
+    dependsOn 'npmInstall'
+    mustRunAfter 'test'
+    workingDir = projectDir
+    commandLine npmCommand(['run', 'build'])
+    inputs.dir('src')
+    inputs.files('package.json', 'package-lock.json', 'tsconfig.json', 'index.html')
+    inputs.files(fileTree('.') { include 'vite.config.*', '.env', '.env.local', '.env.production', '.env.production.local' })
+    // Vite also accepts environment variables supplied by CI or the shell.
+    inputs.property('viteEnvironment', providers.environmentVariablesPrefixedBy('VITE_'))
+    outputs.dir('dist')
+}
+
+tasks.named('check') { dependsOn 'test' }
+tasks.named('assemble') { dependsOn 'frontendBuild' }
+tasks.named('clean', Delete) {
+    delete 'dist', 'tsconfig.tsbuildinfo'
+}
+
+tasks.register('dev', Exec) {
+    group = 'application'
+    description = 'Run the local Vite development server (Ctrl+C to stop).'
+    dependsOn 'npmInstall'
+    workingDir = projectDir
+    commandLine npmCommand(['run', 'dev'])
+}
+
+tasks.named('wrapper') {
+    gradleVersion = '9.6.0'
+    distributionType = Wrapper.DistributionType.BIN
+}

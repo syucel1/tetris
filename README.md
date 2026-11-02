@@ -24,12 +24,20 @@ Set `VITE_LOG_LEVEL=DEBUG`, `INFO`, `WARN` or `ERROR` in `.env.local` (see `.env
 
 ## Run
 
-```sh
-npm install
-npm run dev
+Use the committed Gradle Wrapper. Prerequisites: Java 17+ (Java 21 recommended), Node.js 22.6+ and npm available on PATH. Gradle 9.6.0 is pinned by the wrapper; a separate Gradle installation is unnecessary. The first run on a new machine downloads Gradle and the locked npm dependencies.
+
+Windows PowerShell:
+
+```powershell
+# Only needed when Java is not already configured:
+$env:JAVA_HOME = 'C:\dev\tools\jdk-21.0.12.1'
+.\gradlew.bat build   # Install dependencies, run all tests, type-check and build dist/
+.\gradlew.bat dev     # Start the local browser preview; Ctrl+C stops it
 ```
 
-Open the printed local URL. `npm run build` creates a production build in `dist`. `npm test` runs engine checks (Node 22.6+).
+macOS / Linux: use `./gradlew build` and `./gradlew dev` (if needed, `chmod +x gradlew` once). `gradlew test` runs the tests, `gradlew clean` removes generated output, and `gradlew clean build` performs a fresh production build. Windows uses `.\gradlew.bat` for the same tasks.
+
+Gradle coordinates the frontend build; the existing npm scripts and Vite compiler remain underneath. `npmInstall` uses `npm ci` when package inputs change; `frontendBuild` supports incremental builds. Tests run on every `build` or `test`. `clean` preserves installed dependencies and local browser profiles. Stop a running preview before reinstalling dependencies on Windows to avoid executable file locks.
 
 ## Play
 
