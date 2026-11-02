@@ -11,7 +11,7 @@ const palettes:Record<string,string[]>={Prism:['#00eaff','#526bff','#ff941f','#f
 function read(){try{return {...defaults,...JSON.parse(localStorage.getItem('prism-settings')||'{}')};}catch{return defaults;}}
 type Game={id:string;placements:number;board:Matrix;shape:Matrix;x:number;y:number;queue:number[];held:number|null;type:number;holdUsed:boolean;score:number;lines:number;status:'ready'|'playing'|'paused'|'over'};
 function fresh():Game{const q=[...bag(),...bag()];const type=q.shift()!;return {id:crypto.randomUUID(),placements:0,board:emptyBoard(),shape:SHAPES[type],x:3,y:0,queue:q,held:null,type,holdUsed:false,score:0,lines:0,status:'ready'};}
-function App({profile,onProfileChange,multiplayer=false,active=true,roundId=0,paused=false,onPause,onStart,onTurnEnd}:PlayerGameProps){
+function App({profile,onProfileChange,multiplayer=false,active=true,roundId=0,paused=false,onPause,onStart,onTurnEnd,settingsRequest=0,menuOpen=false}:PlayerGameProps){
 const [settings,setSettings]=useState<Settings>(()=>({...profile.settings}));const [game,setGame]=useState<Game>(fresh);const [best,setBest]=useState(profile.best);const [modal,setModal]=useState(false);const [tab,setTab]=useState('Appearance');const [flash,setFlash]=useState(false);const [cleared,setCleared]=useState(0);const canvas=useRef<HTMLCanvasElement>(null);const [renderWidth,setRenderWidth]=useState(300);const audio=useRef<AudioContext|null>(null);const current=useRef(game);current.current=game;
 useEffect(()=>{const el=canvas.current;if(!el)return;const observer=new ResizeObserver(([entry])=>setRenderWidth(Math.max(1,entry.contentRect.width)));observer.observe(el);return()=>observer.disconnect();},[]);
 const lifecycle=useRef<ReturnType<typeof createGameLifecycle>|null>(null);if(!lifecycle.current)lifecycle.current=createGameLifecycle({playerId:profile.id,mode:multiplayer?'multiplayer':'solo'});
@@ -31,6 +31,8 @@ function block(x:number,y:number,v:number,ghost=false){if(y<0)return;const color
 game.board.forEach((r,y)=>r.forEach((v,x)=>v&&block(x,y,v)));if(game.status!=='ready'){if(settings.ghost){let y=game.y;while(fits(game.board,game.shape,game.x,y+1))y++;game.shape.forEach((r,dy)=>r.forEach((v,dx)=>v&&block(game.x+dx,y+dy,v,true)));}game.shape.forEach((r,dy)=>r.forEach((v,dx)=>v&&block(game.x+dx,game.y+dy,v)));}},[game,settings,colors,renderWidth]);
 function start(){if(multiplayer){onStart?.();return;}setGame({...fresh(),status:'playing'});}
 function openSettings(){if(multiplayer){if(!paused&&roundId)onPause?.();}else setGame(g=>g.status==='playing'?{...g,status:'paused'}:g);setModal(true);}
+useEffect(()=>{if(settingsRequest)openSettings();},[settingsRequest]);
+useEffect(()=>{if(menuOpen&&!multiplayer)setGame(g=>g.status==='playing'?{...g,status:'paused'}:g);},[menuOpen,multiplayer]);
 const reported=useRef(0);useEffect(()=>{if(multiplayer&&roundId){reported.current=0;setGame({...fresh(),status:'playing'});}},[roundId,multiplayer]);
 useEffect(()=>{if(multiplayer&&game.placements>reported.current){reported.current=game.placements;onTurnEnd?.(game.status==='over');}},[game.placements,game.status,multiplayer]);
 function keyLabel(key:string){return ({' ':'Space',ArrowLeft:'←',ArrowRight:'→',ArrowUp:'↑',ArrowDown:'↓'} as Record<string,string>)[key]||key.toUpperCase();}
@@ -59,3 +61,6 @@ import './layout.css';
 
 
 
+
+
+import './navigation.css';
