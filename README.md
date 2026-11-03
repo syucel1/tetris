@@ -2,9 +2,19 @@
 
 A local single-player falling-block game built with React, TypeScript, Vite and HTML5 Canvas.
 
-## Feature roadmap
+## Local game recovery
 
-See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Both include local game recovery for browser restarts and crashes as the first planned feature. This is planned work, not an implemented recovery feature.
+Named-profile games are checkpointed in this browser after piece placement and lifecycle changes, with throttled movement saves and a two-second active-time refresh. Reopen the same browser origin after a refresh, closure, crash or application/container restart to choose **Resume saved game** or **Discard saved game**. Restore always starts paused and does not charge time spent away.
+
+Checkpoints include each board, current/queued pieces, hold state, scoring, difficulty and preferences, active-play metrics, profile IDs and the active multiplayer turn. The queued seven-bag pieces are retained; future new bags continue to be shuffled normally. Existing personal bests are never reduced by restoring an older checkpoint.
+
+Guest games do not save recovery data unless **Save this game for recovery, including Guest boards** is explicitly checked. That consent applies only to this local play session; Guest snapshots do not become named profiles. Turning the option off removes the recovery checkpoint. Leaving a game deliberately, discarding it, or finishing all boards clears the recovery offer.
+
+The versioned save is validated before loading. A damaged primary save falls back to the previous valid checkpoint. Incompatible snapshots, missing profiles and storage failures show a message while allowing a fresh game. A failed write keeps the last successful save; crash recovery may lose recent moves. Recovery is browser-local and origin-specific, not a cloud backup, and cannot survive cleared browser data or guarantee writes when browser storage is disabled/full. Different hostnames or ports do not share a save.
+
+## Roadmap documents
+
+See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Local game recovery is marked implemented; the remaining eight features are planned.
 
 After editing the HTML roadmap, run `node scripts/sync-roadmap.mjs` to regenerate Markdown and validate internal HTML links. Both formats are included in the Docker image; rebuild the image to update its served copies.
 
@@ -75,6 +85,9 @@ Arrow keys move, rotate and soft-drop. Space hard-drops, C holds, and P or Escap
 Use **Make it yours** to choose dark/light appearance, three piece palettes, starting difficulty 1–10, animations, grid, ghost piece, sound and volume. Preferences, profile name and personal best are saved in this browser using localStorage. These settings belong to one local profile; clearing browser data clears them. No backend, account or multiplayer is used. Line sounds are synthesized with Web Audio. Fonts fall back to system sans-serif without network access.
 
 Scoring: 100/300/500/800 × level for clearing 1/2/3/4 lines, 1 per soft-drop cell and 2 per hard-drop cell. Speed increases every 10 lines to level 10. Pieces use a shuffled seven-bag randomizer.
+
+
+
 
 
 

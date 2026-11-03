@@ -4,6 +4,7 @@ import {Play,Pause,RotateCcw,Settings2,Volume2,ChevronDown,Trophy,Sparkles,Arrow
 import {SHAPES,emptyBoard,fits,rotate,clearLines,bag,type Matrix} from './engine';
 import './style.css';
 import {createPlayClock} from './metrics';
+import {restoreBoard,type Game} from './recovery';
 import {Metrics} from './MetricsPanel';
 import {createGameLifecycle,installApplicationLogging,reportError,logEvent} from './logging';
 import {ProfileApp,type PlayerGameProps} from './ProfileApp';
@@ -11,15 +12,14 @@ import {type Settings,defaultSettings,defaultKeys,type ControlAction} from './pr
 const defaults:Settings=defaultSettings;
 const palettes:Record<string,string[]>={Prism:['#00eaff','#526bff','#ff941f','#ffe63b','#59ff4a','#d84dff','#ff376b'],Aurora:['#69e3e6','#689fff','#f2ba8f','#c1df90','#4bd5b1','#a596f8','#eb9bce'],Candy:['#7cddf7','#a499ff','#ffb598','#ffe39a','#a4e6b2','#e6a3f7','#ff8fb3']};
 function read(){try{return {...defaults,...JSON.parse(localStorage.getItem('prism-settings')||'{}')};}catch{return defaults;}}
-type Game={pieces:number;id:string;placements:number;board:Matrix;shape:Matrix;x:number;y:number;queue:number[];held:number|null;type:number;holdUsed:boolean;score:number;lines:number;status:'ready'|'playing'|'paused'|'over'};
 function fresh():Game{const q=[...bag(),...bag()];const type=q.shift()!;return {pieces:0,id:crypto.randomUUID(),placements:0,board:emptyBoard(),shape:SHAPES[type],x:3,y:0,queue:q,held:null,type,holdUsed:false,score:0,lines:0,status:'ready'};}
-function App({profile,onProfileChange,multiplayer=false,active=true,roundId=0,paused=false,onPause,onStart,onTurnEnd,settingsRequest=0,menuOpen=false}:PlayerGameProps){
-const [settings,setSettings]=useState<Settings>(()=>({...profile.settings}));const [game,setGame]=useState<Game>(fresh);const [best,setBest]=useState(profile.best);const [modal,setModal]=useState(false);const [tab,setTab]=useState('Appearance');const [flash,setFlash]=useState(false);const [cleared,setCleared]=useState(0);const canvas=useRef<HTMLCanvasElement>(null);const [renderWidth,setRenderWidth]=useState(300);const audio=useRef<AudioContext|null>(null);const current=useRef(game);current.current=game;
+function App({profile,onProfileChange,multiplayer=false,active=true,roundId=0,paused=false,onPause,onStart,onTurnEnd,settingsRequest=0,menuOpen=false,checkpoint,onCheckpoint,onNewGame}:PlayerGameProps){
+const [settings,setSettings]=useState<Settings>(()=>({...checkpoint?.profile.settings||profile.settings}));const [game,setGame]=useState<Game>(()=>checkpoint?restoreBoard(checkpoint).game:fresh());const [best,setBest]=useState(profile.best);const [modal,setModal]=useState(false);const [tab,setTab]=useState('Appearance');const [flash,setFlash]=useState(false);const [cleared,setCleared]=useState(0);const canvas=useRef<HTMLCanvasElement>(null);const [renderWidth,setRenderWidth]=useState(300);const audio=useRef<AudioContext|null>(null);const current=useRef(game);current.current=game;
 useEffect(()=>{const el=canvas.current;if(!el)return;const observer=new ResizeObserver(([entry])=>setRenderWidth(Math.max(1,entry.contentRect.width)));observer.observe(el);return()=>observer.disconnect();},[]);
 const lifecycle=useRef<ReturnType<typeof createGameLifecycle>|null>(null);if(!lifecycle.current)lifecycle.current=createGameLifecycle({playerId:profile.id,mode:multiplayer?'multiplayer':'solo'});
 useEffect(()=>{lifecycle.current?.({...game,status:multiplayer&&paused&&game.status==='playing'?'paused':game.status});},[game.id,game.status,multiplayer,paused]);
 const clock=useRef(createPlayClock());const [elapsed,setElapsed]=useState(0);const roundBest=useRef(profile.best);
-useEffect(()=>{clock.current.reset();setElapsed(0);roundBest.current=best;},[game.id]);
+useEffect(()=>{const saved=checkpoint?.game.id===game.id?checkpoint:undefined;clock.current.reset(saved?.elapsed||0);setElapsed(saved?.elapsed||0);roundBest.current=saved?.previousBest??best;},[game.id]);
 useEffect(()=>{const running=game.status==='playing'&&(!multiplayer||(active&&!paused))&&!modal&&!menuOpen;clock.current.setRunning(running);setElapsed(clock.current.elapsed());if(!running)return;const timer=setInterval(()=>setElapsed(clock.current.elapsed()),250);return()=>{clock.current.setRunning(false);clearInterval(timer);};},[game.id,game.status,multiplayer,active,paused,modal,menuOpen]);
 const metricsProps={elapsed,pieces:game.pieces,lines:game.lines,score:game.score,previousBest:roundBest.current};
 const colors=palettes[settings.palette]||palettes.Prism;const level=Math.min(10,settings.difficulty+Math.floor(game.lines/10));
@@ -35,12 +35,17 @@ useEffect(()=>{if(game.status!=='playing'||(multiplayer&&(!active||paused)))retu
 useEffect(()=>{const el=canvas.current;if(!el)return;const ctx=el.getContext('2d')!;const dpr=window.devicePixelRatio||1;el.width=Math.round(renderWidth*dpr);el.height=Math.round(renderWidth*2*dpr);ctx.scale(el.width/300,el.height/600);ctx.clearRect(0,0,300,600);if(settings.grid){ctx.strokeStyle=settings.theme==='dark'?'#28cfff20':'#29194415';ctx.lineWidth=.5;for(let x=0;x<=300;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,600);ctx.stroke();}for(let y=0;y<=600;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(300,y);ctx.stroke();}}
 function block(x:number,y:number,v:number,ghost=false){if(y<0)return;const color=colors[v-1];const px=x*30+2,py=y*30+2;ctx.save();ctx.shadowColor=color;ctx.shadowBlur=ghost?0:12;const fill=ctx.createLinearGradient(px,py,px+26,py+26);fill.addColorStop(0,color+'b0');fill.addColorStop(.45,color+'45');fill.addColorStop(1,color+'80');ctx.fillStyle=ghost?color+'10':fill;ctx.strokeStyle=ghost?color+'70':color;ctx.lineWidth=ghost?1:1.8;ctx.beginPath();ctx.roundRect(px,py,26,26,2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;if(!ghost){ctx.strokeStyle='#ffffff70';ctx.lineWidth=.6;ctx.strokeRect(px+2,py+2,22,22);ctx.fillStyle='#ffffff55';ctx.fillRect(px+3,py+2,20,2);}ctx.restore();}
 game.board.forEach((r,y)=>r.forEach((v,x)=>v&&block(x,y,v)));if(game.status!=='ready'){if(settings.ghost){let y=game.y;while(fits(game.board,game.shape,game.x,y+1))y++;game.shape.forEach((r,dy)=>r.forEach((v,dx)=>v&&block(game.x+dx,y+dy,v,true)));}game.shape.forEach((r,dy)=>r.forEach((v,dx)=>v&&block(game.x+dx,game.y+dy,v)));}},[game,settings,colors,renderWidth]);
-function start(){if(multiplayer){onStart?.();return;}setGame({...fresh(),status:'playing'});}
+function start(){if(multiplayer){onStart?.();return;}onNewGame?.();setGame({...fresh(),status:'playing'});}
 function openSettings(){if(multiplayer){if(!paused&&roundId)onPause?.();}else setGame(g=>g.status==='playing'?{...g,status:'paused'}:g);setModal(true);}
 useEffect(()=>{if(settingsRequest)openSettings();},[settingsRequest]);
 useEffect(()=>{if(menuOpen&&!multiplayer)setGame(g=>g.status==='playing'?{...g,status:'paused'}:g);},[menuOpen,multiplayer]);
-const reported=useRef(0);useEffect(()=>{if(multiplayer&&roundId){reported.current=0;setGame({...fresh(),status:'playing'});}},[roundId,multiplayer]);
+const reported=useRef(checkpoint?.game.placements||0);const restoredRound=useRef(checkpoint?roundId:-1);useEffect(()=>{if(multiplayer&&roundId&&roundId!==restoredRound.current){reported.current=0;setGame({...fresh(),status:'playing'});}},[roundId,multiplayer]);
 useEffect(()=>{if(multiplayer&&game.placements>reported.current){reported.current=game.placements;onTurnEnd?.(game.status==='over');}},[game.placements,game.status,multiplayer]);
+useEffect(()=>{if(multiplayer&&!paused&&roundId)setGame(g=>g.status==='paused'?{...g,status:'playing'}:g);},[multiplayer,paused,roundId]);
+const capture=useRef(()=>{});capture.current=()=>{if(game.status!=='playing'||(multiplayer&&(!active||paused)))return;onCheckpoint?.({profile:{...profile,settings,best:Math.max(best,game.score)},game,elapsed:clock.current.elapsed(),previousBest:roundBest.current},false);};
+const lastCheckpoint=useRef({id:'',placements:-1,status:''});
+useEffect(()=>{const last=lastCheckpoint.current;const important=last.id!==game.id||last.placements!==game.placements||last.status!==game.status;lastCheckpoint.current={id:game.id,placements:game.placements,status:game.status};onCheckpoint?.({profile:{...profile,settings,best:Math.max(best,game.score)},game,elapsed:clock.current.elapsed(),previousBest:roundBest.current},important);},[game,settings,best,active,paused]);
+useEffect(()=>{const timer=setInterval(()=>capture.current(),2000);const flush=()=>capture.current();window.addEventListener('pagehide',flush);return()=>{clearInterval(timer);window.removeEventListener('pagehide',flush);};},[]);
 function keyLabel(key:string){return ({' ':'Space',ArrowLeft:'←',ArrowRight:'→',ArrowUp:'↑',ArrowDown:'↓'} as Record<string,string>)[key]||key.toUpperCase();}
 const [binding,setBinding]=useState<ControlAction|null>(null);const [keyError,setKeyError]=useState('');
 useEffect(()=>{if(!binding)return;const capture=(e:KeyboardEvent)=>{e.preventDefault();e.stopPropagation();if(e.key==='Escape'){setBinding(null);return;}if(['Control','Shift','Alt','Meta','Tab'].includes(e.key)||e.ctrlKey||e.metaKey||e.altKey)return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(Object.entries(settings.keys).some(([action,value])=>action!==binding&&value.toLowerCase()===key.toLowerCase())){setKeyError('That key is already assigned. Choose another.');return;}update('keys',{...settings.keys,[binding]:key});setBinding(null);setKeyError('');};window.addEventListener('keydown',capture,true);return()=>window.removeEventListener('keydown',capture,true);},[binding,settings.keys]);
@@ -72,4 +77,5 @@ import './layout.css';
 import './navigation.css';
 
 import './metrics.css';
+
 
