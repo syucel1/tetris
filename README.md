@@ -2,7 +2,13 @@
 
 A local single-player falling-block game built with React, TypeScript, Vite and HTML5 Canvas.
 
-## Round metrics
+## Feature roadmap
+
+See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Both include local game recovery for browser restarts and crashes as the first planned feature. This is planned work, not an implemented recovery feature.
+
+After editing the HTML roadmap, run `node scripts/sync-roadmap.mjs` to regenerate Markdown and validate internal HTML links. Both formats are included in the Docker image; rebuild the image to update its served copies.
+
+## Current round metrics
 
 The **This round** panel shows active play time, pieces placed, lines cleared and average pieces per minute. Timing starts when a round starts, stops during pauses, settings and score dialogs, and excludes the other player's turns. Hold and failed spawns do not count as placed pieces. Metrics reset for each new round and freeze at game over. The summary compares the final score against the player's personal best at the start of that round. These per-round metrics are not stored as history or sent anywhere; existing saved high scores are unchanged.
 
@@ -69,6 +75,7 @@ Arrow keys move, rotate and soft-drop. Space hard-drops, C holds, and P or Escap
 Use **Make it yours** to choose dark/light appearance, three piece palettes, starting difficulty 1–10, animations, grid, ghost piece, sound and volume. Preferences, profile name and personal best are saved in this browser using localStorage. These settings belong to one local profile; clearing browser data clears them. No backend, account or multiplayer is used. Line sounds are synthesized with Web Audio. Fonts fall back to system sans-serif without network access.
 
 Scoring: 100/300/500/800 × level for clearing 1/2/3/4 lines, 1 per soft-drop cell and 2 per hard-drop cell. Speed increases every 10 lines to level 10. Pieces use a shuffled seven-bag randomizer.
+
 
 
 
