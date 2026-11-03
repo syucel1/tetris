@@ -2,7 +2,7 @@
 
 Updated: 03 NOV 2026
 
-9 planned features · 4 delivery phases · Dependency-led order · No committed release dates
+9 roadmap features · 4 delivery phases · Dependency-led order · No committed release dates
 
 [Open the styled HTML version](roadmap.html)
 
@@ -10,7 +10,7 @@ Grow from a shared-screen game into a connected competitive experience. Keep loc
 
 ## Existing foundation
 
-The app already supports solo play, two local boards with alternating turns, named local profiles, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. The features below extend that foundation; none is marked complete.
+The app already supports solo play, two local boards with alternating turns, named local profiles, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. Local game recovery is now implemented; the remaining eight features extend this foundation.
 
 <a id="local"></a>
 
@@ -22,7 +22,7 @@ Finish the local experience before introducing accounts or network dependencies.
 
 ### 01. Resume after restarts and crashes
 
-**Status:** Planned
+**Status:** Implemented
 
 Recover the latest valid local game after a refresh, browser closure, app restart or unexpected crash.
 
@@ -210,4 +210,4 @@ Local recovery → Local multiplayer → Fair Versus rules → Accounts + storag
 
 ---
 
-Planning document · All nine features are proposed, not released. Scope and dates may evolve.
+Planning document · Local recovery is implemented; eight features remain planned. Scope and dates may evolve.
