@@ -1,0 +1,504 @@
+/* One responsive playfield, with equal page gutters at every window size. */
+.game-title {
+  font-family: Outfit, sans-serif;
+  font-size: 27px;
+  font-weight: 650;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-actions .secondary {
+  padding: 9px 12px;
+}
+.app main {
+  padding-top: 16px;
+}
+.app {
+  --board-width: min(
+    calc((100svh - 135px) / 2),
+    calc(100vw - 2 * var(--page-gutter) - 2 * var(--rail-width) - 2 * var(--game-gap) - 34px)
+  );
+}
+.app {
+  --page-gutter: clamp(16px, 2.5vw, 48px);
+  --rail-width: clamp(170px, 17vw, 280px);
+  --game-gap: clamp(16px, 2vw, 32px);
+  --board-width: min(
+    calc((100svh - 190px) / 2),
+    calc(100vw - 2 * var(--page-gutter) - 2 * var(--rail-width) - 2 * var(--game-gap) - 34px)
+  );
+  padding-inline: var(--page-gutter);
+}
+header {
+  max-width: none;
+  height: 66px;
+}
+main {
+  max-width: none;
+  width: 100%;
+}
+.heading {
+  padding: 18px 0 20px;
+  min-height: 94px;
+}
+.heading h1 {
+  font-size: 30px;
+  margin: 5px 0;
+}
+.heading p {
+  font-size: 11px;
+}
+.game-layout {
+  display: grid;
+  grid-template-columns: var(--rail-width) minmax(0, calc(var(--board-width) + 34px)) var(
+      --rail-width
+    );
+  gap: var(--game-gap);
+  justify-content: center;
+  align-items: start;
+  width: 100%;
+}
+.left-rail,
+.right-rail {
+  min-width: 0;
+  width: 100%;
+}
+.board-frame {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding-inline: 15px;
+}
+.canvas-wrap {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/2;
+  margin: 0;
+  border-width: 1px;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1/2;
+}
+.board-top {
+  height: 30px;
+}
+.board-bottom {
+  height: 32px;
+}
+.score-card {
+  padding: clamp(16px, 1.7vw, 25px);
+}
+.score {
+  font-size: clamp(27px, 2.7vw, 46px);
+}
+.overlay h2 {
+  font-size: clamp(23px, 2vw, 34px);
+}
+.overlay p {
+  font-size: clamp(10px, 1vw, 13px);
+}
+.overlay .primary {
+  width: min(80%, 250px);
+  padding: 14px 20px;
+  font-size: 13px;
+}
+.overlay .eyebrow {
+  font-size: 9px;
+}
+.overlay-symbol {
+  width: 76px;
+  height: 76px;
+}
+.overlay small {
+  font-size: 9px;
+}
+.next-card {
+  padding: 20px;
+}
+.flow-note {
+  margin: 18px 8px;
+}
+footer {
+  max-width: none;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 0 14px;
+}
+.touch-controls {
+  margin: 12px 0 0;
+}
+.header-caption {
+  margin-left: 0;
+}
+@media (min-width: 1700px) {
+  .app {
+    --rail-width: clamp(250px, 18vw, 360px);
+    --game-gap: clamp(28px, 3vw, 64px);
+  }
+  .card .label {
+    font-size: 11px;
+  }
+  .control {
+    font-size: 13px;
+  }
+  .control kbd {
+    font-size: 11px;
+  }
+  .next-0 {
+    height: 115px;
+  }
+  .next-1,
+  .next-2 {
+    height: 90px;
+  }
+  .hold-card .mini {
+    height: 100px;
+  }
+  .mini {
+    transform: scale(1.15);
+  }
+  .stats strong {
+    font-size: 32px;
+  }
+  .stats span {
+    font-size: 10px;
+  }
+}
+@media (max-height: 760px) and (min-width: 801px) {
+  .app {
+    --board-width: min(
+      calc((100svh - 155px) / 2),
+      calc(100vw - 2 * var(--page-gutter) - 2 * var(--rail-width) - 2 * var(--game-gap) - 34px)
+    );
+  }
+  header {
+    height: 52px;
+  }
+  .heading {
+    min-height: 72px;
+    padding: 10px 0;
+  }
+  .heading h1 {
+    font-size: 25px;
+  }
+  .heading .eyebrow,
+  .heading p {
+    font-size: 9px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .score {
+    margin: 10px 0;
+    font-size: 27px;
+  }
+  .stats {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  .hold-card {
+    margin-top: 12px;
+  }
+  .hold-card .mini {
+    height: 50px;
+  }
+  .next-card {
+    padding: 20px;
+  }
+  .next-0 {
+    height: 65px;
+  }
+  .next-1,
+  .next-2 {
+    height: 48px;
+  }
+  .next-piece {
+    margin-top: 8px;
+  }
+  .controls-card {
+    margin-top: 12px;
+  }
+  .control {
+    margin-top: 8px;
+  }
+  .flow-note {
+    display: none;
+  }
+  .overlay-symbol {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 16px;
+  }
+  .overlay h2 {
+    font-size: 21px;
+  }
+  .overlay p {
+    margin-bottom: 14px;
+  }
+  .overlay small {
+    bottom: 14px;
+  }
+  .overlay .primary {
+    padding: 10px 16px;
+  }
+  footer {
+    margin-top: 10px;
+    padding: 8px 0;
+  }
+}
+@media (max-width: 800px) {
+  .app {
+    --page-gutter: clamp(16px, 3vw, 28px);
+    --board-width: min(calc((100svh - 245px) / 2), calc(100vw - 2 * var(--page-gutter) - 34px));
+  }
+  .game-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  .left-rail {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    max-width: 640px;
+  }
+  .score-card {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+  .score-card .label {
+    font-size: 8px;
+  }
+  .score {
+    font-size: 25px;
+    margin: 0;
+  }
+  .best {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    font-size: 8px;
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .best svg {
+    display: none;
+  }
+  .best strong {
+    margin: 0;
+    font-size: 12px;
+  }
+  .stats,
+  .progress,
+  .score-card > small,
+  .flow-note {
+    display: none;
+  }
+  .hold-card {
+    width: 100px;
+    margin: 0 !important;
+    padding: 10px !important;
+    flex-shrink: 0;
+  }
+  .hold-card .label {
+    font-size: 8px;
+  }
+  .hold-card .mini {
+    height: 30px;
+    min-height: 30px;
+    transform: scale(0.8);
+  }
+  .hold-card > small {
+    display: none;
+  }
+  .right-rail {
+    display: none;
+  }
+  .board-frame {
+    width: calc(var(--board-width) + 34px);
+    max-width: 100%;
+    flex-shrink: 0;
+  }
+  .touch-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: center;
+  }
+  .touch-controls button {
+    min-width: 44px;
+    height: 40px;
+  }
+  .heading {
+    padding: 14px 0;
+    min-height: 83px;
+  }
+  .heading .secondary {
+    font-size: 11px;
+    gap: 6px;
+    padding: 10px;
+  }
+  .header-caption {
+    display: none;
+  }
+  .overlay h2 {
+    font-size: 23px;
+  }
+  .overlay p {
+    font-size: 10px;
+  }
+  .overlay .primary {
+    font-size: 11px;
+  }
+  .overlay-symbol {
+    width: 55px;
+    height: 55px;
+    margin-bottom: 20px;
+  }
+  .overlay small {
+    bottom: 16px;
+  }
+  .overlay .eyebrow {
+    font-size: 7px;
+  }
+  footer {
+    font-size: 8px;
+  }
+  .overlay {
+    padding: 16px;
+  }
+  .overlay h2 {
+    margin-inline: 0;
+  }
+}
+@media (max-width: 440px) {
+  .app {
+    --board-width: min(calc((100svh - 245px) / 2), calc(100vw - 2 * var(--page-gutter) - 34px));
+  }
+  .heading h1 {
+    font-size: 26px;
+  }
+  .heading .secondary {
+    font-size: 0;
+    gap: 0;
+  }
+  .score-card {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .score-card .label {
+    width: 100%;
+  }
+  .score {
+    font-size: 22px;
+  }
+  .best {
+    margin-left: auto;
+  }
+  .hold-card {
+    width: 82px;
+  }
+  .profile {
+    font-size: 9px;
+  }
+  .overlay h2 {
+    font-size: 20px;
+  }
+  .overlay .eyebrow {
+    letter-spacing: 1px;
+  }
+  .overlay p {
+    line-height: 1.6;
+  }
+  .overlay .primary {
+    width: 90%;
+  }
+  .text-button {
+    font-size: 8px;
+  }
+  .overlay-symbol {
+    margin-bottom: 15px;
+  }
+}
+
+/* Compact chrome leaves the remaining viewport to the board. */
+.app {
+  --board-width: min(
+    calc((100svh - 200px) / 2),
+    calc(100vw - 2 * var(--page-gutter) - 2 * var(--rail-width) - 2 * var(--game-gap) - 34px)
+  );
+}
+@media (max-width: 800px) {
+  .app {
+    --board-width: min(calc((100svh - 330px) / 2), calc(100vw - 2 * var(--page-gutter) - 34px));
+  }
+  .app header {
+    height: 58px;
+  }
+  .header-actions {
+    gap: 7px;
+  }
+  .header-actions .secondary {
+    font-size: 10px;
+    padding: 8px;
+  }
+  .game-title {
+    font-size: 25px;
+  }
+  .app main {
+    padding-top: 12px;
+  }
+}
+@media (max-width: 440px) {
+  .header-actions .profile {
+    max-width: 150px;
+  }
+  .header-actions .profile > span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .overlay p {
+    display: none;
+  }
+  .overlay .eyebrow {
+    margin-bottom: 8px;
+  }
+  .overlay .text-button {
+    font-size: 8px;
+  }
+  .overlay .primary {
+    padding: 10px;
+  }
+  .overlay-symbol {
+    margin-bottom: 12px;
+  }
+}
+
+.canvas-wrap canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+.board-bottom > span {
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
