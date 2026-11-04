@@ -1,6 +1,6 @@
-import { formatDuration, piecesPerMinute, compareBest } from './metrics';
-import './metrics.css';
-type Props = {
+import { compareBest, formatDuration, piecesPerMinute } from '../game/metrics.ts';
+
+type MetricsPanelProps = {
   elapsed: number;
   pieces: number;
   lines: number;
@@ -8,7 +8,15 @@ type Props = {
   previousBest: number;
   summary?: boolean;
 };
-export function Metrics({ elapsed, pieces, lines, score, previousBest, summary = false }: Props) {
+/** Live "This round" card, or the end-of-round summary when `summary` is set. */
+export function MetricsPanel({
+  elapsed,
+  pieces,
+  lines,
+  score,
+  previousBest,
+  summary = false,
+}: MetricsPanelProps) {
   return (
     <section
       className={summary ? 'round-summary' : 'card metrics-panel'}

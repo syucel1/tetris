@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createGameLifecycle,
+  createGameLifecycleLogger,
   resolveLogLevel,
   installApplicationLogging,
   setLogLevel,
@@ -13,7 +13,7 @@ import {
 test('logs lifecycle transitions once, with player and game identifiers', () => {
   const records: { level: string; event: string; context: unknown }[] = [];
   const emit: Emit = (level, event, context) => records.push({ level, event, context });
-  const observe = createGameLifecycle({ playerId: 'player-a', mode: 'solo' }, emit);
+  const observe = createGameLifecycleLogger({ playerId: 'player-a', mode: 'solo' }, emit);
   let state = {
     id: 'game-a',
     status: 'ready' as 'ready' | 'playing' | 'paused' | 'over',

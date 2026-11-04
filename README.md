@@ -2,6 +2,24 @@
 
 A local single-player falling-block game built with React, TypeScript, Vite and HTML5 Canvas.
 
+## Project structure
+
+```text
+src/
+  main.tsx            Entry point: logging, React root, stylesheet order
+  App.tsx             Lobby, navigation, solo/versus session and recovery wiring
+  components/         React UI (PlayerGame, BoardFrame, SettingsModal, Lobby, dialogs, panels)
+  hooks/              Board canvas, play clock, keyboard controls, key-binding capture
+  game/               Pure rules: board primitives (engine), game state machine, round metrics
+  profiles/           Local profiles, settings normalisation and storage keys
+  recovery/           Validated checkpoint storage and the useRecovery hook
+  logging/            Structured console logging and lifecycle events
+  ui/                 Palettes, canvas drawing, sound synthesis, key labels
+  styles/             Stylesheets (imported in order from main.tsx)
+```
+
+Game rules live in `game/gameState.ts` as a pure `applyAction(state, action, startLevel)` function with unit tests; components own timing, input and side effects. Tests sit next to their modules (`*.test.ts`). Run `npm run format` to apply Prettier, or `npm run format:check` to verify.
+
 ## Local game recovery
 
 Named-profile games are checkpointed in this browser after piece placement and lifecycle changes, with throttled movement saves and a two-second active-time refresh. Reopen the same browser origin after a refresh, closure, crash or application/container restart to choose **Resume saved game** or **Discard saved game**. Restore always starts paused and does not charge time spent away.

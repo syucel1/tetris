@@ -10,8 +10,8 @@ import {
   restoreBoard,
   type SavedMatch,
 } from './recovery.ts';
-import { defaultSettings } from './profiles.ts';
-import { emptyBoard, SHAPES } from './engine.ts';
+import { DEFAULT_SETTINGS } from '../profiles/profiles.ts';
+import { createEmptyBoard, SHAPES } from '../game/engine.ts';
 function fixture(): SavedMatch {
   return {
     version: 1,
@@ -21,12 +21,12 @@ function fixture(): SavedMatch {
     guestConsent: false,
     boards: [
       {
-        profile: { id: 'a', settings: structuredClone(defaultSettings), best: 400 },
+        profile: { id: 'a', settings: structuredClone(DEFAULT_SETTINGS), best: 400 },
         game: {
           id: 'game-a',
           pieces: 2,
           placements: 2,
-          board: emptyBoard(),
+          board: createEmptyBoard(),
           shape: SHAPES[5],
           x: 3,
           y: 4,
