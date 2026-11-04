@@ -1,1 +1,58 @@
-.recovery-status{background:#0a1222;color:#96bbca;font-size:10px;padding:8px clamp(16px,2vw,32px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-height:30px}.recovery-status:empty{display:none}.recovery-status label{display:flex;align-items:center;gap:8px;cursor:pointer}.recovery-status input{accent-color:#64dbe1}.recovery-status small{font-size:9px}.recovery-status [role=status]{color:#f1cf97}.recovery-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.scores-dialog #recovery-title{font-size:27px;letter-spacing:-.7px;margin:14px 0}.recovery-status~.single-session .app{--board-width:min(calc((100svh - 250px)/2),calc(100vw - 2*var(--page-gutter) - 2*var(--rail-width) - 2*var(--game-gap) - 34px))}@media(max-width:800px){.recovery-status~.single-session .app{--board-width:min(calc((100svh - 495px)/2),calc(100vw - 2*var(--page-gutter) - 34px))}.recovery-status label{font-size:9px}.recovery-actions button{width:100%}}
+.recovery-status {
+  background: #0a1222;
+  color: #96bbca;
+  font-size: 10px;
+  padding: 8px clamp(16px, 2vw, 32px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 30px;
+}
+.recovery-status:empty {
+  display: none;
+}
+.recovery-status label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.recovery-status input {
+  accent-color: #64dbe1;
+}
+.recovery-status small {
+  font-size: 9px;
+}
+.recovery-status [role='status'] {
+  color: #f1cf97;
+}
+.recovery-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.scores-dialog #recovery-title {
+  font-size: 27px;
+  letter-spacing: -0.7px;
+  margin: 14px 0;
+}
+.recovery-status ~ .single-session .app {
+  --board-width: min(
+    calc((100svh - 250px) / 2),
+    calc(100vw - 2 * var(--page-gutter) - 2 * var(--rail-width) - 2 * var(--game-gap) - 34px)
+  );
+}
+@media (max-width: 800px) {
+  .recovery-status ~ .single-session .app {
+    --board-width: min(calc((100svh - 495px) / 2), calc(100vw - 2 * var(--page-gutter) - 34px));
+  }
+  .recovery-status label {
+    font-size: 9px;
+  }
+  .recovery-actions button {
+    width: 100%;
+  }
+}
