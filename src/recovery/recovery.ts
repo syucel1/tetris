@@ -24,6 +24,7 @@ import {
   type Profile,
   type Settings,
 } from '../profiles/profiles.ts';
+import { MAX_LOCAL_PLAYERS, PLAY_STYLES, type PlayStyle } from '../session/seating.ts';
 
 export type BoardCheckpoint = {
   profile: Profile;
@@ -38,6 +39,8 @@ export type SavedMatch = {
   version: 1;
   savedAt: number;
   mode: 'solo' | 'multiplayer';
+  /** Multiplayer: how the seats share play. Absent in saves from before it existed (= turns). */
+  style?: PlayStyle;
   /** Index into `boards` of the player whose turn it is. */
   turn: number;
   guestConsent: boolean;
@@ -162,7 +165,10 @@ export function validateMatch(value: unknown): value is SavedMatch {
     !includes(['solo', 'multiplayer'], value.mode) ||
     typeof value.guestConsent !== 'boolean' ||
     !Array.isArray(value.boards) ||
-    value.boards.length !== (value.mode === 'solo' ? 1 : 2) ||
+    !(value.mode === 'solo'
+      ? value.boards.length === 1
+      : value.boards.length >= 2 && value.boards.length <= MAX_LOCAL_PLAYERS) ||
+    !(value.style === undefined || includes(PLAY_STYLES, value.style)) ||
     !isInteger(value.turn) ||
     value.turn >= value.boards.length
   )
@@ -175,7 +181,9 @@ export function validateMatch(value: unknown): value is SavedMatch {
     ids.add(board.profile.id);
   }
   const boards = value.boards as BoardCheckpoint[];
-  return boards[value.turn].game.status !== 'over';
+  return value.style === 'simultaneous'
+    ? boards.some((b) => b.game.status !== 'over')
+    : boards[value.turn].game.status !== 'over';
 }
 
 const isDiscardMarker = (data: unknown) =>

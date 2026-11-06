@@ -1,6 +1,6 @@
 # Tetris — Feature Roadmap
 
-Updated: 03 NOV 2026
+Updated: 06 NOV 2026
 
 9 roadmap features · 4 delivery phases · Dependency-led order · No committed release dates
 
@@ -10,7 +10,7 @@ Grow from a shared-screen game into a connected competitive experience. Keep loc
 
 ## Existing foundation
 
-The app already supports solo play, two local boards with alternating turns, named local profiles, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. Local game recovery is now implemented; the remaining eight features extend this foundation.
+The app already supports solo play, two to four shared-screen boards with alternating turns or simultaneous play, named local profiles, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. Local game recovery and adaptive shared-screen multiplayer are now implemented; the remaining seven features extend this foundation.
 
 <a id="local"></a>
 
@@ -40,7 +40,7 @@ Recover the latest valid local game after a refresh, browser closure, app restar
 
 ### 02. Adaptive shared-screen multiplayer
 
-**Status:** Planned
+**Status:** Implemented
 
 Let more local players join when the display can comfortably fit their boards.
 
@@ -210,4 +210,4 @@ Local recovery → Local multiplayer → Fair Versus rules → Accounts + storag
 
 ---
 
-Planning document · Local recovery is implemented; eight features remain planned. Scope and dates may evolve.
+Planning document · Local recovery and local multiplayer are implemented; seven features remain planned. Scope and dates may evolve.

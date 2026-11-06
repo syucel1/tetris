@@ -1,0 +1,199 @@
+/* Shared-screen seats: lobby seat list, play style, key clashes, and N-board session layout. */
+
+/* ── Lobby ─────────────────────────────────────────────────────────────── */
+.seat-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.seat-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+}
+.seat-list-heading small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.seat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid #28cfff30;
+  border-radius: 9px;
+  background: #0b1027;
+  font-size: 13px;
+}
+.seat-row.first-seat small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+}
+.seat-number {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #12304580;
+  border: 1px solid #42eaff70;
+  color: #a5f2ff;
+  font-size: 11px;
+}
+.seat-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 9px;
+  background: #080e24;
+  color: #e5faff;
+  border: 1px solid #28cfff40;
+  border-radius: 7px;
+}
+.seat-remove {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid #ff9cad40;
+  border-radius: 7px;
+  background: transparent;
+  color: #ffb3c0;
+}
+.seat-add {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.seat-add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.seat-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.seat-hint.warning,
+.key-clash p {
+  color: #ffc58a;
+}
+.play-style {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 0;
+  border: 0;
+}
+.play-style legend {
+  font-size: 12px;
+  margin-bottom: 8px;
+  padding: 0;
+}
+.play-style label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #28cfff30;
+  border-radius: 9px;
+  background: #0b1027;
+  cursor: pointer;
+}
+.play-style label.chosen {
+  border-color: #42eaff;
+  background: #11304580;
+}
+.play-style input {
+  margin-top: 2px;
+  accent-color: #4adfff;
+}
+.play-style strong {
+  display: block;
+  font-size: 12px;
+}
+.play-style small {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8ca9c9;
+}
+.key-clash {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: -8px 0 22px;
+  padding: 10px 12px;
+  border: 1px solid #ffc58a40;
+  border-radius: 9px;
+  background: #2a1d1440;
+}
+.key-clash p {
+  flex: 1 1 260px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.key-clash p svg {
+  vertical-align: -2px;
+}
+.lobby-play:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 500px) {
+  .play-style {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Session: the board width and column count come from seatLayout() ───── */
+.multiplayer-session.seated .multiplayer-boards {
+  grid-template-columns: repeat(var(--seat-columns, 2), minmax(0, 1fr));
+}
+.multiplayer-session.seated .app {
+  --board-width: var(--seat-board-width);
+}
+.key-clash-note {
+  color: #ffc58a !important;
+  font-size: 11px !important;
+}
+
+/* Narrow seats (three or four across): stack the score card so nothing is clipped. */
+.multiplayer-session.seated .player-seat {
+  container-type: inline-size;
+}
+@container (max-width: 420px) {
+  .multiplayer-session.seated .score-card {
+    display: block;
+    padding: 10px 12px;
+  }
+  .multiplayer-session.seated .score {
+    font-size: 26px;
+    margin: 6px 0;
+  }
+  .multiplayer-session.seated .best {
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 9px;
+  }
+  .multiplayer-session.seated .profile > span:nth-child(2) {
+    max-width: 90px;
+  }
+}
+
+/* ── Screen-too-small dialog ─────────────────────────────────────────────── */
+.too-small-seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 16px;
+}

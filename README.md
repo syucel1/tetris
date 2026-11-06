@@ -7,12 +7,13 @@ A local single-player falling-block game built with React, TypeScript, Vite and 
 ```text
 src/
   main.tsx            Entry point: logging, React root, stylesheet order
-  App.tsx             Lobby, navigation, solo/versus session and recovery wiring
+  App.tsx             Lobby, navigation, solo/shared-screen session and recovery wiring
   components/         React UI (PlayerGame, BoardFrame, SettingsModal, Lobby, dialogs, panels)
   hooks/              Board canvas, play clock, keyboard controls, key-binding capture
   game/               Pure rules: board primitives (engine), game state machine, round metrics
   profiles/           Local profiles, settings normalisation and storage keys
   recovery/           Validated checkpoint storage and the useRecovery hook
+  session/            Seating rules: screen capacity, board layout, turn order, key clashes
   logging/            Structured console logging and lifecycle events
   ui/                 Palettes, canvas drawing, sound synthesis, key labels
   styles/             Stylesheets (imported in order from main.tsx)
@@ -32,7 +33,7 @@ The versioned save is validated before loading. A damaged primary save falls bac
 
 ## Roadmap documents
 
-See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Local game recovery is marked implemented; the remaining eight features are planned.
+See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Local game recovery and adaptive shared-screen multiplayer are marked implemented; the remaining seven features are planned.
 
 After editing the HTML roadmap, run `node scripts/sync-roadmap.mjs` to regenerate Markdown and validate internal HTML links. Both formats are included in the Docker image; rebuild the image to update its served copies.
 
@@ -44,7 +45,14 @@ The **This round** panel shows active play time, pieces placed, lines cleared an
 
 Choose or create a named profile in the lobby. Each profile stores its own preferences, keyboard mapping and personal best in this browser. Existing Prism settings and high scores migrate into the first profile. Guests are temporary and are never written to the profile store. Clearing browser data removes saved profiles; profiles are not authenticated accounts or synced across devices.
 
-Select a second player (another saved profile or Guest) to open two boards. Start a round to alternate turns after every placed piece. Only the active board advances or accepts game input. Both scores stay visible. When one player tops out, the other continues until their board is also finished. Pause and settings pause the shared session. Different difficulty preferences are allowed; this mode is for friendly score comparison.
+After choosing the first player, use **Add player** to seat up to four players on one screen, each a saved profile or a Guest; a profile can only take one seat. The lobby shows how many boards this window can fit: every board must stay at least 120 px wide (12 px cells), so **Add player** is disabled when there is no room, and three or four boards switch to two rows on tall, portrait displays. With two or more players, choose how to play:
+
+- **Alternating turns**: turns rotate after every placed piece, and only the active board advances or accepts game input.
+- **Simultaneous**: every board plays at once. Each player needs their own keys; the lobby lists shared keys and blocks the start until they are resolved. **Give each player separate keys** assigns free key sets (arrows, WASD + Q/E, IJKL + U/O, number keys) to players who clash and saves them to their profiles. A shared pause key is fine; one press pauses everyone once. Many keyboards cannot register several held keys at once, so four players on one keyboard may notice dropped presses.
+
+**Versus** in the menu is the classic two-player, alternating-turns match. Scores, status and settings stay separate per board. When one player tops out, the others continue until every board is finished. Pause and settings pause the shared session. Different difficulty preferences are allowed; this mode is for friendly score comparison.
+
+If the window shrinks so that the boards would fall below the readable size, play pauses and a dialog explains how many boards fit. Enlarge the window or zoom out and the dialog closes by itself (resume with **Resume**), or remove a player from the round (their board ends; preferences and best score are kept), or go back to the lobby. Boards are never removed or shrunk below the minimum without asking.
 
 Under each player's Settings → Controls, select an action and press a replacement key. Duplicate bindings within a profile are rejected; Escape cancels remapping. Escape also pauses during play. Returning to the lobby resets boards; saved preferences and best scores remain. Guest data is discarded when leaving the session.
 
@@ -100,7 +108,7 @@ Gradle coordinates the frontend build; the existing npm scripts and Vite compile
 
 Arrow keys move, rotate and soft-drop. Space hard-drops, C holds, and P or Escape pauses. Touch buttons are available on smaller screens. Losing browser focus automatically pauses play.
 
-Use **Make it yours** to choose dark/light appearance, three piece palettes, starting difficulty 1–10, animations, grid, ghost piece, sound and volume. Preferences, profile name and personal best are saved in this browser using localStorage. These settings belong to one local profile; clearing browser data clears them. No backend, account or multiplayer is used. Line sounds are synthesized with Web Audio. Fonts fall back to system sans-serif without network access.
+Use **Make it yours** to choose dark/light appearance, three piece palettes, starting difficulty 1–10, animations, grid, ghost piece, sound and volume. Preferences, profile name and personal best are saved in this browser using localStorage. These settings belong to one local profile; clearing browser data clears them. No backend, account or network multiplayer is used. Line sounds are synthesized with Web Audio. Fonts fall back to system sans-serif without network access.
 
 Scoring: 100/300/500/800 × level for clearing 1/2/3/4 lines, 1 per soft-drop cell and 2 per hard-drop cell. Speed increases every 10 lines to level 10. Pieces use a shuffled seven-bag randomizer.
 

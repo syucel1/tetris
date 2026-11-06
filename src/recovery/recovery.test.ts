@@ -86,6 +86,35 @@ test('validates multiplayer turn and retains a finished board', () => {
   m.turn = 0;
   assert.equal(validateMatch(m), false);
 });
+test('accepts up to four seats and keeps the play style', () => {
+  const m = fixture();
+  m.mode = 'multiplayer';
+  m.style = 'simultaneous';
+  for (const id of ['b', 'c', 'd']) {
+    const board = structuredClone(m.boards[0]);
+    board.profile.id = id;
+    board.game.id = 'game-' + id;
+    m.boards.push(board);
+  }
+  // Simultaneous play has no current turn: any unfinished board keeps the match resumable.
+  m.boards[0].game.status = 'over';
+  m.turn = 0;
+  assert.equal(validateMatch(m), true);
+  const store = memory();
+  saveRecovery(store, m);
+  assert.equal(loadRecovery(store, ['a', 'b', 'c', 'd']).match?.style, 'simultaneous');
+  m.boards.forEach((b) => (b.game.status = 'over'));
+  assert.equal(validateMatch(m), false);
+  const five = fixture();
+  five.mode = 'multiplayer';
+  for (const id of ['b', 'c', 'd', 'e']) {
+    const board = structuredClone(five.boards[0]);
+    board.profile.id = id;
+    five.boards.push(board);
+  }
+  assert.equal(validateMatch(five), false);
+  assert.equal(validateMatch({ ...m, style: 'chaos' }), false);
+});
 test('rejects corrupt, incompatible and unsafe snapshots', () => {
   for (const mutate of [
     (m: any) => (m.version = 99),

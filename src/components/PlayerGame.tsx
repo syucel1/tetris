@@ -40,15 +40,17 @@ const ACTIVE_CHECKPOINT_MS = 2000;
 export type PlayerGameProps = {
   profile: Profile;
   onProfileChange: (profile: Profile) => void;
-  /** Two-board, one-piece-per-turn mode. Turn and pause state are then owned by the session. */
+  /** Shared-screen mode (2+ boards). Turn and pause state are then owned by the session. */
   multiplayer?: boolean;
-  /** Multiplayer: whether it is this board's turn. */
+  /** Multiplayer: whether this board may play now (its turn, or always when simultaneous). */
   isMyTurn?: boolean;
   /** Multiplayer round counter; 0 before the first round. A change starts a new game. */
   round?: number;
   /** Multiplayer: the shared pause state. */
   sessionPaused?: boolean;
   onTogglePause?: () => void;
+  /** Multiplayer: pause the shared session (idempotent; used for focus loss and settings). */
+  onPause?: () => void;
   onStartRound?: () => void;
   /** Multiplayer: called after every placement, with whether this board just topped out. */
   onTurnEnd?: (gameOver: boolean) => void;
@@ -71,6 +73,7 @@ export function PlayerGame({
   round = 0,
   sessionPaused = false,
   onTogglePause,
+  onPause,
   onStartRound,
   onTurnEnd,
   settingsRequest = 0,
@@ -175,7 +178,7 @@ export function PlayerGame({
   useEffect(() => {
     const onBlur = () => {
       if (!multiplayer) setGame(pause);
-      else if (canAct && gameRef.current.status === 'playing') onTogglePause?.();
+      else if (canAct && gameRef.current.status === 'playing') onPause?.();
     };
     window.addEventListener('blur', onBlur);
     return () => window.removeEventListener('blur', onBlur);
@@ -199,7 +202,7 @@ export function PlayerGame({
 
   function openSettings() {
     if (!multiplayer) setGame(pause);
-    else if (!sessionPaused && round) onTogglePause?.();
+    else if (!sessionPaused && round) onPause?.();
     setSettingsOpen(true);
   }
 
