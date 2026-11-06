@@ -1,44 +1,78 @@
 import { useState, type FormEvent } from 'react';
-import { Play, UserPlus, Users } from 'lucide-react';
+import { Keyboard, Play, Plus, UserPlus, Users, X } from 'lucide-react';
 import { MAX_NAME_LENGTH, type Profile } from '../profiles/profiles.ts';
+import {
+  MAX_LOCAL_PLAYERS,
+  PLAY_STYLES,
+  PLAY_STYLE_LABELS,
+  type KeyClash,
+  type PlayStyle,
+} from '../session/seating.ts';
+import { keyLabel } from '../ui/keyLabels.ts';
 import { StorageWarning } from './StorageWarning.tsx';
 
-/** `opponentChoice` value meaning "a temporary guest". Empty string means solo. */
-export const GUEST_OPPONENT = 'guest';
+/** Seat choice meaning "a temporary guest"; any other value is a profile id. */
+export const GUEST_SEAT = 'guest';
+
+const STYLE_HELP: Record<PlayStyle, string> = {
+  turns: 'One piece per turn. Only the active board moves.',
+  simultaneous: 'Every board plays at once. Each player needs their own keys.',
+};
 
 type LobbyProps = {
   profiles: Profile[];
   selectedId: string;
-  activeProfileId: string;
   guestSelected: boolean;
-  opponentChoice: string;
-  isTwoPlayer: boolean;
+  /** Everyone seated, first player first. */
+  players: Profile[];
+  /** One entry per seat after the first: a profile id or `GUEST_SEAT`. */
+  seatChoices: string[];
+  /** Seats this window can show readably. */
+  maxSeats: number;
+  playStyle: PlayStyle;
+  clashes: KeyClash[];
   storageError: boolean;
-  onOpponentChange: (choice: string) => void;
   onSelectProfile: (id: string) => void;
   onSelectGuest: () => void;
   /** Throws with a user-facing message when the name is invalid. */
   onCreateProfile: (name: string) => void;
+  onAddSeat: () => void;
+  onChangeSeat: (index: number, choice: string) => void;
+  onRemoveSeat: (index: number) => void;
+  onPlayStyleChange: (style: PlayStyle) => void;
+  onAssignKeys: () => void;
   onPlay: () => void;
 };
 
-/** "Who's playing?" — choose or create a profile and an optional second player. */
+const listNames = (names: string[]) =>
+  names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+
+/** "Who's playing?" — choose the first player, then add up to three more seats. */
 export function Lobby({
   profiles,
   selectedId,
-  activeProfileId,
   guestSelected,
-  opponentChoice,
-  isTwoPlayer,
+  players,
+  seatChoices,
+  maxSeats,
+  playStyle,
+  clashes,
   storageError,
-  onOpponentChange,
   onSelectProfile,
   onSelectGuest,
   onCreateProfile,
+  onAddSeat,
+  onChangeSeat,
+  onRemoveSeat,
+  onPlayStyleChange,
+  onAssignKeys,
   onPlay,
 }: LobbyProps) {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const count = players.length;
+  const tooMany = count > maxSeats;
+  const blocked = tooMany || clashes.length > 0;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -51,6 +85,8 @@ export function Lobby({
     }
   }
 
+  const seatName = (seat: number) => players[seat]?.settings.name ?? `Player ${seat + 1}`;
+
   return (
     <div className="profile-lobby app dark">
       <header>
@@ -61,22 +97,12 @@ export function Lobby({
         <div className="lobby-title">
           <Users size={24} />
           <h2>Who’s playing?</h2>
-          <p>Choose profiles for solo or two-player, one-piece-per-turn play.</p>
+          <p>
+            Choose the first player, then add up to {MAX_LOCAL_PLAYERS - 1} more to share the
+            screen.
+          </p>
         </div>
-        <label className="second-player">
-          Second player
-          <select value={opponentChoice} onChange={(e) => onOpponentChange(e.target.value)}>
-            <option value="">Solo game</option>
-            {profiles
-              .filter((p) => p.id !== activeProfileId)
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.settings.name}
-                </option>
-              ))}
-            <option value={GUEST_OPPONENT}>Guest (temporary)</option>
-          </select>
-        </label>
+
         <div className="profile-list">
           {profiles.map((p) => (
             <button
@@ -127,8 +153,105 @@ export function Lobby({
           {error && <p role="alert">{error}</p>}
         </form>
         {storageError && <StorageWarning className="setting-help" as="p" />}
-        <button className="primary lobby-play" onClick={onPlay}>
-          <Play size={16} /> {isTwoPlayer ? 'Continue with 2 players' : 'Play solo'}
+        <section className="seat-list" aria-label="Seats">
+          <div className="seat-list-heading">
+            <span>Players</span>
+            <small>
+              {count} of {maxSeats} for this screen
+            </small>
+          </div>
+          <div className="seat-row first-seat">
+            <span className="seat-number">1</span>
+            <strong>{seatName(0)}</strong>
+            <small>chosen above</small>
+          </div>
+          {seatChoices.map((choice, i) => {
+            const taken = new Set([players[0].id, ...seatChoices.filter((_, j) => j !== i)]);
+            return (
+              <div className="seat-row" key={i}>
+                <span className="seat-number">{i + 2}</span>
+                <select
+                  aria-label={`Player ${i + 2}`}
+                  value={choice}
+                  onChange={(e) => onChangeSeat(i, e.target.value)}
+                >
+                  {profiles
+                    .filter((p) => !taken.has(p.id))
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.settings.name}
+                      </option>
+                    ))}
+                  <option value={GUEST_SEAT}>
+                    {choice === GUEST_SEAT ? seatName(i + 1) : 'Guest'} (temporary)
+                  </option>
+                </select>
+                <button
+                  className="seat-remove"
+                  aria-label={`Remove player ${i + 2}`}
+                  onClick={() => onRemoveSeat(i)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
+          {count < MAX_LOCAL_PLAYERS && (
+            <button className="secondary seat-add" disabled={count >= maxSeats} onClick={onAddSeat}>
+              <Plus size={14} /> Add player
+            </button>
+          )}
+          {count >= maxSeats && count < MAX_LOCAL_PLAYERS && !tooMany && (
+            <p className="seat-hint">Make the window larger to fit more boards.</p>
+          )}
+          {tooMany && (
+            <p className="seat-hint warning" role="alert">
+              This window fits {maxSeats === 1 ? 'one board' : `${maxSeats} boards`} at a readable
+              size. Make it larger or remove a player.
+            </p>
+          )}
+        </section>
+
+        {count > 1 && (
+          <fieldset className="play-style">
+            <legend>How to play</legend>
+            {PLAY_STYLES.map((style) => (
+              <label key={style} className={playStyle === style ? 'chosen' : ''}>
+                <input
+                  type="radio"
+                  name="play-style"
+                  value={style}
+                  checked={playStyle === style}
+                  onChange={() => onPlayStyleChange(style)}
+                />
+                <span>
+                  <strong>{PLAY_STYLE_LABELS[style]}</strong>
+                  <small>{STYLE_HELP[style]}</small>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+
+        {clashes.length > 0 && (
+          <div className="key-clash" role="alert">
+            <p>
+              <Keyboard size={14} />{' '}
+              {listNames([...new Set(clashes.flatMap((c) => c.seats))].map(seatName))} share keys (
+              {clashes
+                .slice(0, 5)
+                .map((c) => keyLabel(c.key))
+                .join(' ')}
+              {clashes.length > 5 && ' …'}). Playing at once, everyone needs their own.
+            </p>
+            <button className="secondary" onClick={onAssignKeys}>
+              Give each player separate keys
+            </button>
+          </div>
+        )}
+
+        <button className="primary lobby-play" disabled={blocked} onClick={onPlay}>
+          <Play size={16} /> {count > 1 ? `Continue with ${count} players` : 'Play solo'}
         </button>
         <p className="local-profile-note">
           Named profiles keep their own preferences and personal best in this browser. No password

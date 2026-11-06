@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { logEvent } from '../logging/logging.ts';
 import { isGuestId, type Profile } from '../profiles/profiles.ts';
+import type { PlayStyle } from '../session/seating.ts';
 import {
   discardRecovery,
   loadRecovery,
@@ -19,6 +20,7 @@ type SessionState = {
   playing: boolean;
   players: Profile[];
   turn: number;
+  style: PlayStyle;
 };
 
 export type Recovery = ReturnType<typeof useRecovery>;
@@ -27,7 +29,7 @@ export type Recovery = ReturnType<typeof useRecovery>;
  * Collects per-board checkpoints from each `PlayerGame` and persists them as one match.
  * Offers a saved match (`pending`) on startup until it is resumed or discarded.
  */
-export function useRecovery({ playing, players, turn }: SessionState, profileIds: string[]) {
+export function useRecovery({ playing, players, turn, style }: SessionState, profileIds: string[]) {
   const [initial] = useState<RecoveryLoadResult>(() => {
     try {
       return loadRecovery(localStorage, profileIds);
@@ -47,8 +49,8 @@ export function useRecovery({ playing, players, turn }: SessionState, profileIds
   const warned = useRef(false);
 
   // Timers and page-lifecycle listeners read the latest values through this ref.
-  const latest = useRef({ playing, players, turn, guestConsent, pending, notice });
-  latest.current = { playing, players, turn, guestConsent, pending, notice };
+  const latest = useRef({ playing, players, turn, style, guestConsent, pending, notice });
+  latest.current = { playing, players, turn, style, guestConsent, pending, notice };
 
   function cancelScheduledSave() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -77,7 +79,7 @@ export function useRecovery({ playing, players, turn }: SessionState, profileIds
   }
 
   function buildMatch(): SavedMatch | 'finished' | null {
-    const { playing, players, turn, guestConsent, pending } = latest.current;
+    const { playing, players, turn, style, guestConsent, pending } = latest.current;
     if (disabled.current || !playing || pending) return null;
     if (players.some((p) => isGuestId(p.id)) && !guestConsent) return null;
 
@@ -92,6 +94,7 @@ export function useRecovery({ playing, players, turn }: SessionState, profileIds
       version: 1,
       savedAt: Date.now(),
       mode: ready.length === 1 ? 'solo' : 'multiplayer',
+      ...(ready.length > 1 && { style }),
       turn: activeTurn,
       guestConsent,
       boards: ready,
