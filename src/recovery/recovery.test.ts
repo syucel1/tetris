@@ -115,6 +115,37 @@ test('accepts up to four seats and keeps the play style', () => {
   assert.equal(validateMatch(five), false);
   assert.equal(validateMatch({ ...m, style: 'chaos' }), false);
 });
+test('keeps standard-match rules and the seeded piece sequence', () => {
+  const m = fixture();
+  m.mode = 'multiplayer';
+  m.rules = { startLevel: 4 };
+  m.boards[0].game.seed = 123456789;
+  const second = structuredClone(m.boards[0]);
+  second.profile.id = 'b';
+  second.game.id = 'game-b';
+  m.boards.push(second);
+  assert.equal(validateMatch(m), true);
+  const store = memory();
+  saveRecovery(store, m);
+  const loaded = loadRecovery(store, ['a', 'b']).match;
+  assert.deepEqual(loaded?.rules, { startLevel: 4 });
+  assert.equal(loaded?.boards[1].game.seed, 123456789);
+  assert.equal(restoreBoard(loaded!.boards[0]).game.seed, 123456789);
+  // Older saves without rules or seeds still load.
+  delete m.rules;
+  delete m.boards[0].game.seed;
+  assert.equal(validateMatch(m), true);
+  for (const bad of [{ startLevel: 0 }, { startLevel: 11 }, { startLevel: '3' }, 'standard']) {
+    assert.equal(validateMatch({ ...m, rules: bad }), false);
+  }
+  const badSeed = structuredClone(m);
+  badSeed.boards[0].game.seed = -1;
+  assert.equal(validateMatch(badSeed), false);
+  // Rules belong to two-player matches only.
+  const solo = fixture();
+  solo.rules = { startLevel: 2 };
+  assert.equal(validateMatch(solo), false);
+});
 test('rejects corrupt, incompatible and unsafe snapshots', () => {
   for (const mutate of [
     (m: any) => (m.version = 99),

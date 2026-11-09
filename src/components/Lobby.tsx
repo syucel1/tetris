@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Keyboard, Play, Plus, UserPlus, Users, X } from 'lucide-react';
-import { MAX_NAME_LENGTH, type Profile } from '../profiles/profiles.ts';
+import { MATCH_PLAYERS, MATCH_TYPES, MATCH_TYPE_LABELS, type MatchType } from '../game/match.ts';
+import {
+  MAX_DIFFICULTY,
+  MAX_NAME_LENGTH,
+  MIN_DIFFICULTY,
+  type Profile,
+} from '../profiles/profiles.ts';
 import {
   MAX_LOCAL_PLAYERS,
   PLAY_STYLES,
@@ -19,6 +25,16 @@ const STYLE_HELP: Record<PlayStyle, string> = {
   simultaneous: 'Every board plays at once. Each player needs their own keys.',
 };
 
+const MATCH_HELP: Record<MatchType, string> = {
+  standard: 'Shared start level and identical pieces. Higher score wins.',
+  casual: 'Everyone keeps their own difficulty. Scores are just for fun.',
+};
+
+const LEVELS = Array.from(
+  { length: MAX_DIFFICULTY - MIN_DIFFICULTY + 1 },
+  (_, i) => MIN_DIFFICULTY + i,
+);
+
 type LobbyProps = {
   profiles: Profile[];
   selectedId: string;
@@ -30,6 +46,9 @@ type LobbyProps = {
   /** Seats this window can show readably. */
   maxSeats: number;
   playStyle: PlayStyle;
+  /** Two players only: standard match or casual game, and the standard match's start level. */
+  matchType: MatchType;
+  matchLevel: number;
   clashes: KeyClash[];
   storageError: boolean;
   onSelectProfile: (id: string) => void;
@@ -40,6 +59,8 @@ type LobbyProps = {
   onChangeSeat: (index: number, choice: string) => void;
   onRemoveSeat: (index: number) => void;
   onPlayStyleChange: (style: PlayStyle) => void;
+  onMatchTypeChange: (type: MatchType) => void;
+  onMatchLevelChange: (level: number) => void;
   onAssignKeys: () => void;
   onPlay: () => void;
 };
@@ -56,6 +77,8 @@ export function Lobby({
   seatChoices,
   maxSeats,
   playStyle,
+  matchType,
+  matchLevel,
   clashes,
   storageError,
   onSelectProfile,
@@ -65,6 +88,8 @@ export function Lobby({
   onChangeSeat,
   onRemoveSeat,
   onPlayStyleChange,
+  onMatchTypeChange,
+  onMatchLevelChange,
   onAssignKeys,
   onPlay,
 }: LobbyProps) {
@@ -73,6 +98,7 @@ export function Lobby({
   const count = players.length;
   const tooMany = count > maxSeats;
   const blocked = tooMany || clashes.length > 0;
+  const standard = count === MATCH_PLAYERS && matchType === 'standard';
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -233,6 +259,42 @@ export function Lobby({
           </fieldset>
         )}
 
+        {count === MATCH_PLAYERS && (
+          <fieldset className="play-style match-type">
+            <legend>Match</legend>
+            {MATCH_TYPES.map((type) => (
+              <label key={type} className={matchType === type ? 'chosen' : ''}>
+                <input
+                  type="radio"
+                  name="match-type"
+                  value={type}
+                  checked={matchType === type}
+                  onChange={() => onMatchTypeChange(type)}
+                />
+                <span>
+                  <strong>{MATCH_TYPE_LABELS[type]}</strong>
+                  <small>{MATCH_HELP[type]}</small>
+                </span>
+              </label>
+            ))}
+            {standard && (
+              <label className="match-level">
+                <span>Start level for both players</span>
+                <select
+                  value={matchLevel}
+                  onChange={(e) => onMatchLevelChange(Number(e.target.value))}
+                >
+                  {LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      Level {level}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </fieldset>
+        )}
+
         {clashes.length > 0 && (
           <div className="key-clash" role="alert">
             <p>
@@ -251,7 +313,12 @@ export function Lobby({
         )}
 
         <button className="primary lobby-play" disabled={blocked} onClick={onPlay}>
-          <Play size={16} /> {count > 1 ? `Continue with ${count} players` : 'Play solo'}
+          <Play size={16} />{' '}
+          {standard
+            ? 'Continue to match'
+            : count > 1
+              ? `Continue with ${count} players`
+              : 'Play solo'}
         </button>
         <p className="local-profile-note">
           Named profiles keep their own preferences and personal best in this browser. No password

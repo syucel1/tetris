@@ -11,6 +11,7 @@ import {
   rotate,
 } from '../game/engine.ts';
 import type { GameState } from '../game/gameState.ts';
+import { MATCH_PLAYERS, isValidMatchLevel, type MatchRules } from '../game/match.ts';
 import { PALETTE_NAMES } from '../ui/palettes.ts';
 import {
   CONTROL_ACTIONS,
@@ -41,6 +42,8 @@ export type SavedMatch = {
   mode: 'solo' | 'multiplayer';
   /** Multiplayer: how the seats share play. Absent in saves from before it existed (= turns). */
   style?: PlayStyle;
+  /** Standard two-player match: the shared rules. Absent for casual, multi-seat and solo games. */
+  rules?: MatchRules;
   /** Index into `boards` of the player whose turn it is. */
   turn: number;
   guestConsent: boolean;
@@ -126,6 +129,7 @@ function isValidGame(g: unknown): boolean {
     typeof g.holdUsed === 'boolean' &&
     isPieceType(g.type) &&
     (g.held === null || isPieceType(g.held)) &&
+    (g.seed === undefined || (isInteger(g.seed) && g.seed <= 0xffffffff)) &&
     Array.isArray(g.queue) &&
     g.queue.length >= 1 &&
     g.queue.length <= MAX_QUEUE_LENGTH &&
@@ -169,6 +173,13 @@ export function validateMatch(value: unknown): value is SavedMatch {
       ? value.boards.length === 1
       : value.boards.length >= 2 && value.boards.length <= MAX_LOCAL_PLAYERS) ||
     !(value.style === undefined || includes(PLAY_STYLES, value.style)) ||
+    !(
+      value.rules === undefined ||
+      (isRecord(value.rules) &&
+        isValidMatchLevel(value.rules.startLevel) &&
+        value.mode === 'multiplayer' &&
+        value.boards.length === MATCH_PLAYERS)
+    ) ||
     !isInteger(value.turn) ||
     value.turn >= value.boards.length
   )
