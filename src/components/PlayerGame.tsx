@@ -19,6 +19,7 @@ import {
   type GameAction,
   type GameState,
 } from '../game/gameState.ts';
+import type { BoardResult } from '../game/match.ts';
 import { useBoardCanvas } from '../hooks/useBoardCanvas.ts';
 import { useKeyboardControls } from '../hooks/useKeyboardControls.ts';
 import { usePlayClock } from '../hooks/usePlayClock.ts';
@@ -28,7 +29,7 @@ import { restoreBoard, type BoardCheckpoint } from '../recovery/recovery.ts';
 import { keyLabel } from '../ui/keyLabels.ts';
 import { playLineClearSound } from '../ui/lineClearSound.ts';
 import { paletteColors } from '../ui/palettes.ts';
-import { BoardFrame } from './BoardFrame.tsx';
+import { BoardFrame, type BoardPrompt } from './BoardFrame.tsx';
 import { MetricsPanel } from './MetricsPanel.tsx';
 import { SettingsModal, type UpdateSetting } from './SettingsModal.tsx';
 import { ControlsCard, HoldCard, NextPiecesCard, ScoreCard } from './SidePanels.tsx';
@@ -62,6 +63,14 @@ export type PlayerGameProps = {
   onCheckpoint?: (board: BoardCheckpoint, important?: boolean) => void;
   /** Solo: a fresh game is starting. */
   onNewGame?: () => void;
+  /** Standard match: the shared start level, used instead of this player's difficulty. */
+  startLevel?: number;
+  /** Standard match: the round's piece-sequence seed, shared by both boards. */
+  seed?: number;
+  /** Standard match: ready check, waiting or result message over the board. */
+  prompt?: BoardPrompt | null;
+  /** Multiplayer: called with this board's final numbers once it tops out. */
+  onFinish?: (result: BoardResult) => void;
 };
 
 /** One player's board, side panels and settings. */
@@ -81,6 +90,10 @@ export function PlayerGame({
   restoredCheckpoint,
   onCheckpoint,
   onNewGame,
+  startLevel: matchLevel,
+  seed,
+  prompt,
+  onFinish,
 }: PlayerGameProps) {
   const [settings, setSettings] = useState<Settings>(() => ({
     ...(restoredCheckpoint?.profile.settings ?? profile.settings),
@@ -97,7 +110,9 @@ export function PlayerGame({
   /** In multiplayer, input and gravity only run on this player's unpaused turn. */
   const canAct = !multiplayer || (isMyTurn && !sessionPaused);
   const colors = paletteColors(settings.palette);
-  const level = levelFor(settings.difficulty, game.lines);
+  /** A standard match overrides the personal difficulty preference, which stays saved. */
+  const startLevel = matchLevel ?? settings.difficulty;
+  const level = levelFor(startLevel, game.lines);
 
   const updateSetting: UpdateSetting = (key, value) => setSettings((s) => ({ ...s, [key]: value }));
 
@@ -161,7 +176,7 @@ export function PlayerGame({
       return;
     }
     if (!canAct) return;
-    setGame((g) => applyAction(g, action, settings.difficulty));
+    setGame((g) => applyAction(g, action, startLevel));
   }
   const dispatchRef = useRef(dispatch);
   dispatchRef.current = dispatch;
@@ -220,7 +235,7 @@ export function PlayerGame({
   useEffect(() => {
     if (multiplayer && round && round !== restoredRound.current) {
       reportedPlacements.current = 0;
-      setGame(createGame('playing'));
+      setGame(createGame('playing', seed));
     }
   }, [round, multiplayer]);
 
@@ -234,6 +249,17 @@ export function PlayerGame({
   useEffect(() => {
     if (multiplayer && !sessionPaused && round) setGame(resume);
   }, [multiplayer, sessionPaused, round]);
+
+  // Also fires on mount for a restored board that had already finished.
+  useEffect(() => {
+    if (multiplayer && game.status === 'over')
+      onFinish?.({
+        score: game.score,
+        lines: game.lines,
+        pieces: game.pieces,
+        elapsed: readElapsed(),
+      });
+  }, [game.id, game.status, multiplayer]);
 
   // ── Recovery checkpoints ───────────────────────────────────────────────────
   const buildCheckpoint = (): BoardCheckpoint => ({
@@ -316,6 +342,7 @@ export function PlayerGame({
             pauseKeyLabel={keyLabel(settings.keys.pause)}
             burstLines={burstLines}
             turnShield={turnShield}
+            prompt={prompt}
             summary={<MetricsPanel {...metrics} summary />}
             onPrimary={() => (game.status === 'paused' ? dispatch('pause') : startNewGame())}
             onTogglePause={() => dispatch('pause')}
@@ -358,6 +385,7 @@ export function PlayerGame({
         <SettingsModal
           settings={settings}
           best={best}
+          matchLevel={matchLevel}
           onChange={updateSetting}
           onPreviewSound={() => playLineClearSound(settings.sound, settings.volume)}
           onClose={() => setSettingsOpen(false)}

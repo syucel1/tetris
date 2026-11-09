@@ -56,6 +56,47 @@ function ClearBurst({ lines, colors }: { lines: number; colors: readonly string[
   );
 }
 
+/**
+ * A standard-match message for this player (ready check, waiting, result). Shown over the
+ * board in place of the usual status overlay, whatever the board's status.
+ */
+export type BoardPrompt = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  /** Omit for an informational prompt with no button. */
+  action?: string;
+  onAction?: () => void;
+  /** Show the end-of-round metrics summary. */
+  summary?: boolean;
+  /** Marks the action as a toggled-on state (e.g. this player is ready). */
+  pressed?: boolean;
+};
+
+function PromptOverlay({ prompt, summary }: { prompt: BoardPrompt; summary: ReactNode }) {
+  return (
+    <div className="overlay match-prompt">
+      <div className="overlay-symbol">
+        <Layers size={32} />
+      </div>
+      <span className="eyebrow">{prompt.eyebrow}</span>
+      <h2 aria-live="polite">{prompt.title}</h2>
+      <p>{prompt.body}</p>
+      {prompt.summary && summary}
+      {prompt.action && (
+        <button
+          className={prompt.pressed ? 'secondary' : 'primary'}
+          aria-pressed={prompt.pressed}
+          onClick={prompt.onAction}
+        >
+          {!prompt.pressed && <Play size={16} fill="currentColor" />}
+          {prompt.action}
+        </button>
+      )}
+    </div>
+  );
+}
+
 type StatusOverlayProps = {
   game: GameState;
   summary: ReactNode;
@@ -103,6 +144,8 @@ type BoardFrameProps = {
   burstLines: number;
   /** Shown over the board when it isn't this player's turn (multiplayer only). */
   turnShield: string | null;
+  /** Standard-match message; replaces the status overlay and turn shield. */
+  prompt?: BoardPrompt | null;
   summary: ReactNode;
   onPrimary: () => void;
   onTogglePause: () => void;
@@ -117,6 +160,7 @@ export function BoardFrame({
   pauseKeyLabel,
   burstLines,
   turnShield,
+  prompt,
   summary,
   onPrimary,
   onTogglePause,
@@ -135,7 +179,7 @@ export function BoardFrame({
         </span>
       </div>
       <div className="canvas-wrap">
-        {turnShield && (
+        {turnShield && !prompt && (
           <div className="turn-shield">
             <strong>{turnShield}</strong>
           </div>
@@ -143,12 +187,16 @@ export function BoardFrame({
         <div className="board-scan" aria-hidden="true" />
         {burstLines > 0 && <ClearBurst lines={burstLines} colors={colors} />}
         <canvas ref={canvasRef} aria-label={`Game board. Score ${game.score}. ${game.status}`} />
-        <StatusOverlay
-          game={game}
-          summary={summary}
-          onPrimary={onPrimary}
-          onCustomize={onCustomize}
-        />
+        {prompt ? (
+          <PromptOverlay prompt={prompt} summary={summary} />
+        ) : (
+          <StatusOverlay
+            game={game}
+            summary={summary}
+            onPrimary={onPrimary}
+            onCustomize={onCustomize}
+          />
+        )}
       </div>
       <div className="board-bottom">
         <span>

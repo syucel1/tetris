@@ -23,6 +23,8 @@ export type UpdateSetting = <K extends keyof Settings>(key: K, value: Settings[K
 type SettingsModalProps = {
   settings: Settings;
   best: number;
+  /** Set during a standard match, whose shared start level overrides this preference. */
+  matchLevel?: number;
   onChange: UpdateSetting;
   onPreviewSound: () => void;
   onClose: () => void;
@@ -56,6 +58,7 @@ function SettingToggle({
 export function SettingsModal({
   settings,
   best,
+  matchLevel,
   onChange,
   onPreviewSound,
   onClose,
@@ -155,8 +158,9 @@ export function SettingsModal({
                 <span>Fast & focused</span>
               </div>
               <p className="setting-help">
-                Speed increases every 10 cleared lines, up to level 10. Changing difficulty also
-                adjusts the current game.
+                {matchLevel === undefined
+                  ? 'Speed increases every 10 cleared lines, up to level 10. Changing difficulty also adjusts the current game.'
+                  : `This standard match starts both players at level ${matchLevel}. Your preference is kept for solo and casual games.`}
               </p>
               {toggle('ghost', 'Ghost piece', 'Preview exactly where your piece will land.')}
               <div className="info-box">

@@ -7,6 +7,7 @@ import {
   clearLines,
   createBag,
   createEmptyBoard,
+  seededBag,
   dropRow,
   fits,
   forEachCell,
@@ -37,6 +38,11 @@ export type GameState = {
   pieces: number;
   /** Turn-ending events: locked pieces plus failed spawns. Drives multiplayer turn changes. */
   placements: number;
+  /**
+   * Piece-sequence generator state for standard matches, where both boards start from the same
+   * seed and so receive identical pieces. Absent for casual and solo games (bags use Math.random).
+   */
+  seed?: number;
 };
 
 /** Every input the board reacts to. `tick` is gravity. */
@@ -64,11 +70,17 @@ export function gravityDelay(level: number): number {
   return Math.max(80, 850 * Math.pow(0.77, level - 1));
 }
 
-export function createGame(
-  status: GameStatus = 'ready',
-  random: () => number = Math.random,
-): GameState {
-  const queue = [...createBag(random), ...createBag(random)];
+/** A fresh board. Pass `seed` for a reproducible piece sequence (standard matches). */
+export function createGame(status: GameStatus = 'ready', seed?: number): GameState {
+  let queue: number[];
+  let nextSeed = seed;
+  if (seed === undefined) queue = [...createBag(), ...createBag()];
+  else {
+    const first = seededBag(seed);
+    const second = seededBag(first.seed);
+    queue = [...first.bag, ...second.bag];
+    nextSeed = second.seed;
+  }
   const type = queue.shift()!;
   return {
     id: crypto.randomUUID(),
@@ -85,7 +97,16 @@ export function createGame(
     lines: 0,
     pieces: 0,
     placements: 0,
+    ...(nextSeed !== undefined && { seed: nextSeed }),
   };
+}
+
+/** Appends the next bag, from the board's seeded generator when it has one. */
+function refillQueue(game: GameState): Pick<GameState, 'queue' | 'seed'> {
+  if (game.queue.length >= MIN_QUEUE_LENGTH) return { queue: game.queue, seed: game.seed };
+  if (game.seed === undefined) return { queue: [...game.queue, ...createBag()], seed: undefined };
+  const next = seededBag(game.seed);
+  return { queue: [...game.queue, ...next.bag], seed: next.seed };
 }
 
 /** Places `type` at the spawn point; a blocked spawn ends the game. */
@@ -96,10 +117,11 @@ function enterPiece(game: GameState, type: number): GameState {
 }
 
 function spawnNext(game: GameState): GameState {
-  const queue = [...game.queue];
-  if (queue.length < MIN_QUEUE_LENGTH) queue.push(...createBag());
-  const type = queue.shift()!;
-  return { ...enterPiece({ ...game, queue }, type), holdUsed: false };
+  const { queue, seed } = refillQueue(game);
+  const [type, ...rest] = queue;
+  const next: GameState = { ...game, queue: rest };
+  if (seed !== undefined) next.seed = seed;
+  return { ...enterPiece(next, type), holdUsed: false };
 }
 
 function lockPiece(game: GameState, startLevel: number): GameState {

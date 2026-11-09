@@ -197,3 +197,98 @@
   gap: 8px;
   margin: 4px 0 16px;
 }
+
+/* ── Standard two-player match ───────────────────────────────────────────── */
+.match-type .match-level {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: default;
+  font-size: 12px;
+}
+.match-type .match-level select {
+  padding: 7px 9px;
+  border: 1px solid #28cfff50;
+  border-radius: 7px;
+  background: #0b1027;
+  color: #e8f8ff;
+}
+.match-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  max-width: 1600px;
+  margin: 8px auto 0;
+  padding: 8px 14px;
+  border: 1px solid #28cfff40;
+  border-radius: 10px;
+  background: #0b1027d9;
+  font-size: 11px;
+  color: #b9d4ee;
+}
+.match-strip-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6bebff;
+  font-size: 12px;
+}
+.match-strip ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.match-strip li::before {
+  content: '·';
+  margin-right: 6px;
+  color: #42eaff;
+}
+.match-strip .text-button {
+  margin-left: auto;
+}
+.match-result dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  margin: 0;
+}
+.match-result dl > div {
+  display: flex;
+  gap: 8px;
+}
+.match-result dt {
+  color: #e8f8ff;
+}
+.match-result dd {
+  margin: 0;
+}
+.match-result .winner dt::after {
+  content: ' ★';
+  color: #ffd56b;
+}
+.match-result b {
+  color: #e8f8ff;
+}
+.overlay.match-prompt .secondary[aria-pressed='true'] {
+  width: min(80%, 250px);
+  padding: 12px 20px;
+  border: 1px solid #42eaff;
+  border-radius: 8px;
+  background: #11304580;
+  color: #a5f2ff;
+  font-size: 13px;
+}
+/* Seated boards hide overlay body text; a match prompt's one line (waiting, margin) is kept. */
+@media (min-width: 651px) and (min-height: 600px) {
+  .multiplayer-session .overlay.match-prompt p {
+    display: block;
+    margin: 0 0 14px;
+    max-width: 90%;
+  }
+}

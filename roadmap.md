@@ -1,6 +1,6 @@
 # Tetris — Feature Roadmap
 
-Updated: 06 NOV 2026
+Updated: 09 NOV 2026
 
 9 roadmap features · 4 delivery phases · Dependency-led order · No committed release dates
 
@@ -10,7 +10,7 @@ Grow from a shared-screen game into a connected competitive experience. Keep loc
 
 ## Existing foundation
 
-The app already supports solo play, two to four shared-screen boards with alternating turns or simultaneous play, named local profiles, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. Local game recovery and adaptive shared-screen multiplayer are now implemented; the remaining seven features extend this foundation.
+The app already supports solo play, two to four shared-screen boards with alternating turns or simultaneous play, standard two-player matches with shared rules, named local profiles, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. Local game recovery, adaptive shared-screen multiplayer and fair two-player matches are now implemented; the remaining six features extend this foundation.
 
 <a id="local"></a>
 
@@ -57,7 +57,7 @@ Let more local players join when the display can comfortably fit their boards.
 
 ### 03. Fair two-player matches
 
-**Status:** Planned
+**Status:** Implemented
 
 Turn two independent boards into a clear, comparable head-to-head match.
 
@@ -204,10 +204,10 @@ Local recovery → Local multiplayer → Fair Versus rules → Accounts + storag
 ## Decisions before implementation
 
 - Choose a minimum board size and test real displays before setting player-count limits.
-- Agree on Versus win conditions, input behavior and fairness rules.
+- Versus rules agreed (Nov 2026): higher score wins once both boards top out, equal scores tie; one shared start level and identical piece sequence; alternating or simultaneous play.
 - Select identity, database, hosting and real-time transport providers during Phase 02 planning.
 - Defer public matchmaking, leagues, advanced tournament formats and native mobile apps.
 
 ---
 
-Planning document · Local recovery and local multiplayer are implemented; seven features remain planned. Scope and dates may evolve.
+Planning document · Local recovery, local multiplayer and fair two-player matches are implemented; six features remain planned. Scope and dates may evolve.

@@ -66,6 +66,28 @@ export function clearLines(board: Matrix): { board: Matrix; lines: number } {
   return { board: [...Array.from({ length: lines }, emptyRow), ...remaining], lines };
 }
 
+/**
+ * One step of the mulberry32 generator: a value in [0, 1) and the next 32-bit state.
+ * Small, fast and deterministic, so two boards given the same seed see the same pieces.
+ */
+export function nextRandom(state: number): [value: number, next: number] {
+  const next = (state + 0x6d2b79f5) >>> 0;
+  let t = Math.imul(next ^ (next >>> 15), next | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return [((t ^ (t >>> 14)) >>> 0) / 4294967296, next];
+}
+
+/** A seven-bag drawn from a seeded generator, with the generator state that follows it. */
+export function seededBag(seed: number): { bag: number[]; seed: number } {
+  let state = seed >>> 0;
+  const bag = createBag(() => {
+    const [value, next] = nextRandom(state);
+    state = next;
+    return value;
+  });
+  return { bag, seed: state };
+}
+
 /** A Fisher–Yates shuffled "seven-bag" containing each piece type exactly once. */
 export function createBag(random: () => number = Math.random): number[] {
   const bag = Array.from({ length: PIECE_TYPE_COUNT }, (_, type) => type);

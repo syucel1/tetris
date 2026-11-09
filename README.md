@@ -10,7 +10,7 @@ src/
   App.tsx             Lobby, navigation, solo/shared-screen session and recovery wiring
   components/         React UI (PlayerGame, BoardFrame, SettingsModal, Lobby, dialogs, panels)
   hooks/              Board canvas, play clock, keyboard controls, key-binding capture
-  game/               Pure rules: board primitives (engine), game state machine, round metrics
+  game/               Pure rules: board primitives (engine), game state machine, match rules, round metrics
   profiles/           Local profiles, settings normalisation and storage keys
   recovery/           Validated checkpoint storage and the useRecovery hook
   session/            Seating rules: screen capacity, board layout, turn order, key clashes
@@ -25,7 +25,7 @@ Game rules live in `game/gameState.ts` as a pure `applyAction(state, action, sta
 
 Named-profile games are checkpointed in this browser after piece placement and lifecycle changes, with throttled movement saves and a two-second active-time refresh. Reopen the same browser origin after a refresh, closure, crash or application/container restart to choose **Resume saved game** or **Discard saved game**. Restore always starts paused and does not charge time spent away.
 
-Checkpoints include each board, current/queued pieces, hold state, scoring, difficulty and preferences, active-play metrics, profile IDs and the active multiplayer turn. The queued seven-bag pieces are retained; future new bags continue to be shuffled normally. Existing personal bests are never reduced by restoring an older checkpoint.
+Checkpoints include each board, current/queued pieces, hold state, scoring, difficulty and preferences, active-play metrics, profile IDs and the active multiplayer turn. The queued seven-bag pieces are retained; future new bags continue to be shuffled normally, except in a standard two-player match, where the shared piece-sequence state and the match rules are saved too, so both boards still receive identical pieces after a restore. Existing personal bests are never reduced by restoring an older checkpoint.
 
 Guest games do not save recovery data unless **Save this game for recovery, including Guest boards** is explicitly checked. That consent applies only to this local play session; Guest snapshots do not become named profiles. Turning the option off removes the recovery checkpoint. Leaving a game deliberately, discarding it, or finishing all boards clears the recovery offer.
 
@@ -33,7 +33,7 @@ The versioned save is validated before loading. A damaged primary save falls bac
 
 ## Roadmap documents
 
-See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Local game recovery and adaptive shared-screen multiplayer are marked implemented; the remaining seven features are planned.
+See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Local game recovery, adaptive shared-screen multiplayer and fair two-player matches are marked implemented; the remaining six features are planned.
 
 After editing the HTML roadmap, run `node scripts/sync-roadmap.mjs` to regenerate Markdown and validate internal HTML links. Both formats are included in the Docker image; rebuild the image to update its served copies.
 
@@ -50,7 +50,20 @@ After choosing the first player, use **Add player** to seat up to four players o
 - **Alternating turns**: turns rotate after every placed piece, and only the active board advances or accepts game input.
 - **Simultaneous**: every board plays at once. Each player needs their own keys; the lobby lists shared keys and blocks the start until they are resolved. **Give each player separate keys** assigns free key sets (arrows, WASD + Q/E, IJKL + U/O, number keys) to players who clash and saves them to their profiles. A shared pause key is fine; one press pauses everyone once. Many keyboards cannot register several held keys at once, so four players on one keyboard may notice dropped presses.
 
-**Versus** in the menu is the classic two-player, alternating-turns match. Scores, status and settings stay separate per board. When one player tops out, the others continue until every board is finished. Pause and settings pause the shared session. Different difficulty preferences are allowed; this mode is for friendly score comparison.
+With three or four players, scores, status and settings stay separate per board and different difficulty preferences are allowed; when one player tops out, the others continue until every board is finished. Pause and settings pause the shared session.
+
+## Two-player matches
+
+With exactly two players the lobby offers a **Standard match** (the default) or a **Casual game**. **Versus** in the menu starts a standard match with alternating turns; choose Simultaneous in the lobby for a real-time match.
+
+- **Shared rules:** one start level for both players (chosen in the lobby, default 1; it overrides each player's difficulty preference for the match only), the usual scoring and speed-up every 10 lines, hold allowed for both, and the **same pieces in the same order** on both boards (each round uses a fresh shared seed).
+- **Personal preferences** (theme, palette, ghost, grid, sound and keys) stay with each player and are never changed by a match.
+- **Before the start** both players see the rules above the boards and press **I'm ready** on their own board. When both are ready a 3-second countdown starts; un-readying cancels it.
+- **Win condition (score race):** both boards play until they top out. The higher final score wins; equal scores are a tie. A player who tops out first waits while the other plays on.
+- **Result:** both players see the same result above the boards (winner and margin, or tie) with each player's score, lines, pieces, play time and pieces per minute, plus their own round summary on their board. **Rematch** (on a board or in the toolbar) returns to the ready check and marks that player ready. Asking for a rematch mid-round pauses the round; **Back to the current round** cancels.
+- A **Casual game** behaves like the three- and four-player sessions: personal difficulty, independent piece sequences, no winner.
+
+A finished match is logged as `match_finished` (outcome, winner ID, scores, start level and play style).
 
 If the window shrinks so that the boards would fall below the readable size, play pauses and a dialog explains how many boards fit. Enlarge the window or zoom out and the dialog closes by itself (resume with **Resume**), or remove a player from the round (their board ends; preferences and best score are kept), or go back to the lobby. Boards are never removed or shrunk below the minimum without asking.
 
@@ -58,7 +71,7 @@ Under each player's Settings → Controls, select an action and press a replacem
 
 ## Logging
 
-The browser console receives structured records through the lightweight `loglevel` library. Events are `application_started`, `game_created`, `game_started`, `game_paused`, `game_resumed`, and `game_over` at INFO. Game records include a unique game ID, player ID and mode; every record includes a page-session ID, timestamp and level. Multiplayer waiting turns are not pauses. Game-over records also include score and cleared lines. Movement, gravity ticks and render updates are not logged.
+The browser console receives structured records through the lightweight `loglevel` library. Events are `application_started`, `game_created`, `game_started`, `game_paused`, `game_resumed`, `game_over` and `match_finished` at INFO. Game records include a unique game ID, player ID and mode; every record includes a page-session ID, timestamp and level. Multiplayer waiting turns are not pauses. Game-over records also include score and cleared lines. Movement, gravity ticks and render updates are not logged.
 
 Unhandled browser errors, unhandled promise rejections and React root errors are logged at ERROR with error details and available player IDs. Profile storage failure is logged at WARN. Logs stay in the browser console; no history store or remote transmission is added.
 
