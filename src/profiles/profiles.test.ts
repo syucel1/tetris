@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadProfiles, createProfile, STORAGE_KEYS } from './profiles.ts';
+import {
+  DEFAULT_KEYS,
+  loadProfiles,
+  createProfile,
+  normalizeSettings,
+  STORAGE_KEYS,
+} from './profiles.ts';
 const storage = (values: Record<string, string>) => ({
   getItem: (key: string) => values[key] ?? null,
 });
@@ -45,4 +51,13 @@ test('creating a profile validates names and keeps settings independent', () => 
   assert.throws(() => createProfile(' alex ', [a]));
   assert.throws(() => createProfile('  ', []));
   assert.notEqual(a.id, b.id);
+});
+test('normalizing settings drops implausible key bindings', () => {
+  const settings = normalizeSettings({
+    keys: { left: 'a', right: 42, rotate: '', drop: 'x'.repeat(200) } as never,
+  });
+  assert.equal(settings.keys.left, 'a');
+  assert.equal(settings.keys.right, DEFAULT_KEYS.right);
+  assert.equal(settings.keys.rotate, DEFAULT_KEYS.rotate);
+  assert.equal(settings.keys.drop, DEFAULT_KEYS.drop);
 });

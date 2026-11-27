@@ -1,12 +1,16 @@
 services:
+  # Static game files, plus /api forwarded to the account server. The only published port.
   tetris:
     image: tetris-local:latest
     build:
       context: .
+      target: runtime
       args:
         VITE_LOG_LEVEL: ${VITE_LOG_LEVEL:-INFO}
     ports:
       - "127.0.0.1:${TETRIS_PORT:-8080}:8080"
+    depends_on:
+      - api
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=32m
@@ -15,3 +19,45 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+
+  # Account API (Node). Reachable only through the tetris service.
+  api:
+    image: tetris-api:latest
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgres://tetris:${POSTGRES_PASSWORD:-tetris-local-only}@db:5432/tetris
+      TRUST_PROXY: "true"
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SESSION_DAYS: ${SESSION_DAYS:-30}
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  # Accounts, sessions and saved profiles. Data persists in the tetris-db volume.
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: tetris
+      POSTGRES_USER: tetris
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tetris-local-only}
+    volumes:
+      - tetris-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tetris -d tetris"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  tetris-db:

@@ -1,6 +1,14 @@
 import type { Profile } from '../profiles/profiles.ts';
 
-export function ScoresDialog({ profiles, onClose }: { profiles: Profile[]; onClose: () => void }) {
+export function ScoresDialog({
+  profiles,
+  accountProfileId,
+  onClose,
+}: {
+  profiles: Profile[];
+  accountProfileId?: string;
+  onClose: () => void;
+}) {
   const ranked = [...profiles].sort((a, b) => b.best - a.best);
   return (
     <div className="scores-backdrop" onClick={onClose}>
@@ -30,13 +38,20 @@ export function ScoresDialog({ profiles, onClose }: { profiles: Profile[]; onClo
           <tbody>
             {ranked.map((p) => (
               <tr key={p.id}>
-                <td>{p.settings.name}</td>
+                <td>
+                  {p.settings.name}
+                  {p.id === accountProfileId && <span className="account-tag">Your account</span>}
+                </td>
                 <td>{p.best.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p>Saved scores on this device. Guest scores are temporary.</p>
+        <p>
+          Local profiles’ scores are saved on this device
+          {accountProfileId ? '; your account’s best is saved to your account' : ''}. Guest scores
+          are temporary.
+        </p>
       </section>
     </div>
   );

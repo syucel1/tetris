@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Keyboard, Play, Plus, UserPlus, Users, X } from 'lucide-react';
+import { Cloud, Keyboard, Play, Plus, UserPlus, Users, X } from 'lucide-react';
+import type { AccountStatus } from '../accounts/useAccount.ts';
 import { MATCH_PLAYERS, MATCH_TYPES, MATCH_TYPE_LABELS, type MatchType } from '../game/match.ts';
 import {
   MAX_DIFFICULTY,
@@ -36,7 +37,11 @@ const LEVELS = Array.from(
 );
 
 type LobbyProps = {
+  /** Local profiles, with the signed-in account's profile first when there is one. */
   profiles: Profile[];
+  accountProfileId?: string;
+  accountStatus: AccountStatus;
+  onOpenAccount: () => void;
   selectedId: string;
   guestSelected: boolean;
   /** Everyone seated, first player first. */
@@ -71,6 +76,9 @@ const listNames = (names: string[]) =>
 /** "Who's playing?" — choose the first player, then add up to three more seats. */
 export function Lobby({
   profiles,
+  accountProfileId,
+  accountStatus,
+  onOpenAccount,
   selectedId,
   guestSelected,
   players,
@@ -138,7 +146,14 @@ export function Lobby({
             >
               <span className="avatar">{p.settings.name.slice(0, 1).toUpperCase()}</span>
               <span>
-                <strong>{p.settings.name}</strong>
+                <strong>
+                  {p.settings.name}
+                  {p.id === accountProfileId && (
+                    <span className="account-tag">
+                      <Cloud size={11} aria-hidden="true" /> Your account
+                    </span>
+                  )}
+                </strong>
                 <small>
                   Best {p.best.toLocaleString()} · Level {p.settings.difficulty} ·{' '}
                   {p.settings.palette}
@@ -321,8 +336,19 @@ export function Lobby({
               : 'Play solo'}
         </button>
         <p className="local-profile-note">
-          Named profiles keep their own preferences and personal best in this browser. No password
-          or login. Guest progress is temporary.
+          Named profiles keep their own preferences and personal best in this browser. Guest
+          progress is temporary.{' '}
+          {accountProfileId
+            ? 'Your account’s settings and best score are saved to the server.'
+            : accountStatus === 'signedOut' && (
+                <>
+                  To keep your settings and best score on any machine,{' '}
+                  <button type="button" className="link-button" onClick={onOpenAccount}>
+                    sign in or create an account
+                  </button>
+                  .
+                </>
+              )}
         </p>
       </main>
     </div>

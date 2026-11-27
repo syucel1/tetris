@@ -11,6 +11,7 @@ import './styles/navigation.css';
 import './styles/neon.css';
 import './styles/layout.css';
 import './styles/seating.css';
+import './styles/accounts.css';
 
 installApplicationLogging();
 

@@ -25,6 +25,8 @@ type SettingsModalProps = {
   best: number;
   /** Set during a standard match, whose shared start level overrides this preference. */
   matchLevel?: number;
+  /** The profile belongs to the signed-in account and is saved to the server. */
+  onAccount?: boolean;
   onChange: UpdateSetting;
   onPreviewSound: () => void;
   onClose: () => void;
@@ -59,6 +61,7 @@ export function SettingsModal({
   settings,
   best,
   matchLevel,
+  onAccount = false,
   onChange,
   onPreviewSound,
   onClose,
@@ -246,8 +249,9 @@ export function SettingsModal({
                 />
               </label>
               <div className="info-box">
-                Your local profile keeps your preferences and personal best in this browser. No
-                account or connection required.
+                {onAccount
+                  ? 'Saved to your account: these preferences and your personal best follow you to any machine where you sign in.'
+                  : 'Your local profile keeps your preferences and personal best in this browser. No account or connection required.'}
               </div>
               <div className="profile-best">
                 <Trophy />

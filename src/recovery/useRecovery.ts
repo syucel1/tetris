@@ -4,6 +4,8 @@ import { isGuestId, type Profile } from '../profiles/profiles.ts';
 import type { MatchRules } from '../game/match.ts';
 import type { PlayStyle } from '../session/seating.ts';
 import {
+  BACKUP_KEY,
+  RECOVERY_KEY,
   discardRecovery,
   loadRecovery,
   saveRecovery,
@@ -181,6 +183,25 @@ export function useRecovery(
     return match;
   }
 
+  /**
+   * Drops any saved game that includes this profile, e.g. when its account signs out, so the
+   * next person using this browser cannot resume it or read its settings.
+   */
+  function forget(profileId: string) {
+    const quoted = JSON.stringify(profileId);
+    let stored = false;
+    try {
+      stored = [RECOVERY_KEY, BACKUP_KEY].some((key) =>
+        (localStorage.getItem(key) ?? '').includes(quoted),
+      );
+    } catch {
+      // Unreadable storage holds nothing we can clear.
+    }
+    const inPending = latest.current.pending?.boards.some((b) => b.profile.id === profileId);
+    if (stored || inPending || boards.current.has(profileId)) discard();
+    boards.current.delete(profileId);
+  }
+
   function setConsent(value: boolean) {
     setGuestConsent(value);
     latest.current.guestConsent = value;
@@ -197,6 +218,7 @@ export function useRecovery(
     reset,
     discard,
     resume,
+    forget,
     setConsent,
   };
 }

@@ -1,6 +1,6 @@
 # Tetris — Feature Roadmap
 
-Updated: 09 NOV 2026
+Updated: 27 NOV 2026
 
 9 roadmap features · 4 delivery phases · Dependency-led order · No committed release dates
 
@@ -10,7 +10,7 @@ Grow from a shared-screen game into a connected competitive experience. Keep loc
 
 ## Existing foundation
 
-The app already supports solo play, two to four shared-screen boards with alternating turns or simultaneous play, standard two-player matches with shared rules, named local profiles, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. Local game recovery, adaptive shared-screen multiplayer and fair two-player matches are now implemented; the remaining six features extend this foundation.
+The app already supports solo play, two to four shared-screen boards with alternating turns or simultaneous play, standard two-player matches with shared rules, named local profiles, optional player accounts stored on a Node + PostgreSQL server, temporary Guests, individual preferences and key mappings, high scores, round metrics, lifecycle logging, a Gradle build, and Docker hosting. Local game recovery, adaptive shared-screen multiplayer, fair two-player matches and player accounts are now implemented; the remaining five features extend this foundation.
 
 <a id="local"></a>
 
@@ -80,11 +80,11 @@ Introduce identity and durable storage, then make the experience portable.
 
 ### 04. Player accounts and a persistent store
 
-**Status:** Planned
+**Status:** Implemented
 
 Create a secure account-backed foundation for profiles that outlive one browser.
 
-- Add sign-up, login, logout and account recovery with a managed identity provider.
+- Add sign-up, login, logout and account recovery. Implemented self-hosted (username and password, one-time recovery codes) so it runs locally in Docker; a managed identity provider can replace it before public hosting.
 - Create backend storage for player identity, per-player settings and personal bests.
 - Enforce ownership checks so one account cannot change another player’s data.
 - Keep local Guest play available; add basic admin access roles and account-support controls here.
@@ -210,4 +210,4 @@ Local recovery → Local multiplayer → Fair Versus rules → Accounts + storag
 
 ---
 
-Planning document · Local recovery, local multiplayer and fair two-player matches are implemented; six features remain planned. Scope and dates may evolve.
+Planning document · Local recovery, local multiplayer, fair two-player matches and player accounts are implemented; five features remain planned. Scope and dates may evolve.
