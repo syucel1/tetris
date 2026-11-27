@@ -1,3 +1,4 @@
+import { isAccountProfileId } from '../accounts/rules.ts';
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowDown,
@@ -386,6 +387,7 @@ export function PlayerGame({
           settings={settings}
           best={best}
           matchLevel={matchLevel}
+          onAccount={isAccountProfileId(profile.id)}
           onChange={updateSetting}
           onPreviewSound={() => playLineClearSound(settings.sound, settings.volume)}
           onClose={() => setSettingsOpen(false)}

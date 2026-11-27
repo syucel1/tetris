@@ -88,12 +88,27 @@ const clamp = (value: number, min: number, max: number) => Math.max(min, Math.mi
 const oneOf = <T extends string>(options: readonly T[], value: unknown, fallback: T): T =>
   options.includes(value as T) ? (value as T) : fallback;
 
+/** Longest accepted `KeyboardEvent.key` value; real key names are far shorter. */
+export const MAX_KEY_LENGTH = 31;
+
+/** Keeps each binding that is a plausible key name; anything else falls back to the default. */
+function normalizeKeys(value: unknown): KeyBindings {
+  const keys = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const result = { ...DEFAULT_KEYS };
+  for (const action of CONTROL_ACTIONS) {
+    const key = keys[action];
+    if (typeof key === 'string' && key.length > 0 && key.length <= MAX_KEY_LENGTH)
+      result[action] = key;
+  }
+  return result;
+}
+
 /** Coerces untrusted (stored or legacy) settings into a valid `Settings` object. */
 export function normalizeSettings(value: Partial<Settings> = {}): Settings {
   const merged = { ...DEFAULT_SETTINGS, ...value };
   return {
     ...merged,
-    keys: { ...DEFAULT_KEYS, ...merged.keys },
+    keys: normalizeKeys(merged.keys),
     name:
       typeof merged.name === 'string'
         ? merged.name.slice(0, MAX_NAME_LENGTH)

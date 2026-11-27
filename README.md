@@ -1,16 +1,18 @@
 # Prism
 
-A local single-player falling-block game built with React, TypeScript, Vite and HTML5 Canvas.
+A falling-block game for one to four players on one screen, built with React, TypeScript, Vite and HTML5 Canvas, with optional player accounts on a small Node + PostgreSQL server.
 
 ## Project structure
 
 ```text
+server/src/           Account API (Node, no framework): routes, PostgreSQL store, password hashing, CLI
 src/
   main.tsx            Entry point: logging, React root, stylesheet order
   App.tsx             Lobby, navigation, solo/shared-screen session and recovery wiring
   components/         React UI (PlayerGame, BoardFrame, SettingsModal, Lobby, dialogs, panels)
   hooks/              Board canvas, play clock, keyboard controls, key-binding capture
   game/               Pure rules: board primitives (engine), game state machine, match rules, round metrics
+  accounts/           Account rules shared with the server, the API client and the useAccount hook
   profiles/           Local profiles, settings normalisation and storage keys
   recovery/           Validated checkpoint storage and the useRecovery hook
   session/            Seating rules: screen capacity, board layout, turn order, key clashes
@@ -33,7 +35,7 @@ The versioned save is validated before loading. A damaged primary save falls bac
 
 ## Roadmap documents
 
-See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Local game recovery, adaptive shared-screen multiplayer and fair two-player matches are marked implemented; the remaining six features are planned.
+See [roadmap.html](roadmap.html) for the styled, printable roadmap or [roadmap.md](roadmap.md) for the matching Markdown document. Local game recovery, adaptive shared-screen multiplayer, fair two-player matches and player accounts are marked implemented; the remaining five features are planned.
 
 After editing the HTML roadmap, run `node scripts/sync-roadmap.mjs` to regenerate Markdown and validate internal HTML links. Both formats are included in the Docker image; rebuild the image to update its served copies.
 
@@ -77,6 +79,26 @@ Unhandled browser errors, unhandled promise rejections and React root errors are
 
 Set `VITE_LOG_LEVEL=DEBUG`, `INFO`, `WARN` or `ERROR` in `.env.local` (see `.env.example`), then restart Vite or rebuild production assets. INFO is the default; invalid values fall back to INFO. For a browser-specific override, run `localStorage.setItem('tetris-log-level', 'DEBUG')` in the developer console and reload. Remove that key to restore the build setting. DEBUG includes INFO/WARN/ERROR; ERROR shows only errors. Each full page load starts a new session ID; named player IDs remain stable across reloads and Guest IDs are temporary.
 
+## Player accounts
+
+Use **Sign in** at the right of the menu to create an account with a username and password, sign in, or recover a forgotten password. Accounts are optional: local profiles and Guests work exactly as before, also when the account server is not running.
+
+- **Your profile, on any machine.** The signed-in account appears first in the lobby (marked *Your account*) and is seated as the first player. Its name, appearance, sound, difficulty, key mappings and personal best are saved to the server shortly after every change and loaded when you sign in elsewhere. The best score only ever goes up. Changes made while the server is unreachable are retried. Cross-machine conflict handling and importing an existing local profile are roadmap item 05.
+- **Signing out leaves nothing behind.** The account's profile is kept in memory, never in localStorage; signing out ends the session on the server, removes the account from the lobby and discards any crash-recovery save that includes its board.
+- **Recovery codes instead of email.** Creating an account shows a one-time recovery code (for example `QX832-8DHBH-JGJB3-66JBY`). Keep it somewhere safe: with it, **Forgot password** sets a new password, issues a new code and signs out every other device. A signed-in player can also create a new code (the old one stops working). Changing the password signs out other devices.
+- **Rules.** Usernames are 3–24 letters, numbers, dots, dashes or underscores and are unique regardless of case. Passwords need at least 8 characters.
+
+**Administrators** see an **Accounts** list on the account page: every account with its role, creation and last sign-in dates and status. They can disable an account (it is signed out everywhere and cannot sign in) or enable it again, and issue a new recovery code to hand to a player who lost theirs. Administrators cannot disable themselves. Make the first administrator from the command line after they have created their account:
+
+```sh
+docker compose exec api node --experimental-strip-types server/src/cli.ts make-admin <username>
+# outside Docker: npm run server:admin -- make-admin <username>   (remove-admin reverses it)
+```
+
+**Security.** Passwords and recovery codes are stored only as salted scrypt hashes. Sessions are random tokens in an `HttpOnly`, `SameSite=Strict` cookie scoped to `/api` (stored server-side as a SHA-256 hash, valid for 30 days); write requests must be same-origin JSON. Wrong passwords get the same answer whether or not the username exists, and repeated failures are throttled per username (10 per 15 minutes) and per address (30), with at most 20 new accounts per address per hour. Player scores are sent by the browser and are not verified by the server; server-checked results arrive with online matches (roadmap item 06). Over plain HTTP the cookie and password travel unencrypted, which is fine on this machine only; put the site behind HTTPS and set `COOKIE_SECURE=true` before letting other machines connect.
+
+**API.** All routes are under `/api` and return JSON: `POST auth/signup`, `auth/login`, `auth/logout`, `auth/recover`, `auth/password`, `auth/recovery-code`; `GET auth/me`; `GET`/`PUT profile`; `GET admin/accounts`; `POST admin/accounts/:id/disable`, `…/enable`, `…/recovery-code`; `GET health`.
+
 ## Docker
 
 Install and start Docker Desktop with Linux containers (or Docker Engine with the Compose plugin). No host Java, Node or Gradle installation is needed for this workflow.
@@ -86,9 +108,11 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Open [Tetris](http://localhost:8080) or the [roadmap](http://localhost:8080/roadmap.html). Stop with `docker compose down`. Rebuild after source changes with `docker compose up --build -d`. View server logs with `docker compose logs -f tetris`; browser game lifecycle logs remain in the browser console.
+Open [Tetris](http://localhost:8080) or the [roadmap](http://localhost:8080/roadmap.html). Stop with `docker compose down` (account data stays in the `tetris-db` volume; `docker compose down -v` deletes it). Rebuild after source changes with `docker compose up --build -d`. View logs with `docker compose logs -f tetris api`; browser game lifecycle logs remain in the browser console.
 
-The multi-stage image uses Node 22 and Java 21 to run the pinned Gradle Wrapper, including all tests and the production build. Only compiled assets, the roadmap and Nginx are included in the final image. Nginx runs as a non-root user on port 8080 with a health check, a read-only filesystem and temporary files in `/tmp`. Compose exposes it only on this machine's loopback interface. Build caches speed up dependency downloads; `.dockerignore` excludes host dependencies, Git data and local environment files.
+Compose runs three services. **tetris** (Nginx) serves the game and forwards `/api/` to **api**, the Node account server, which stores accounts in **db**, PostgreSQL 17 with a named volume. Only `tetris` publishes a port. The API applies database migrations on start and waits for the database. Before the first start, copy `.env.example` to `.env` and set `POSTGRES_PASSWORD`; the default is meant only for this machine.
+
+The multi-stage Dockerfile uses Node 22 and Java 21 to run the pinned Gradle Wrapper, including all tests and the production build. Only compiled assets, the roadmap and Nginx are included in the final `runtime` image; the `api` image holds the server sources and production dependencies and runs as the non-root `node` user. Nginx runs as a non-root user on port 8080 with a health check, a read-only filesystem and temporary files in `/tmp`. Compose exposes it only on this machine's loopback interface. Build caches speed up dependency downloads; `.dockerignore` excludes host dependencies, Git data and local environment files.
 
 Optional PowerShell configuration before building:
 
@@ -98,7 +122,7 @@ $env:VITE_LOG_LEVEL = 'WARN'   # Compiled into browser assets at build time
 docker compose up --build -d
 ```
 
-Browser profiles remain in localStorage, not a container volume. A different hostname or port is a different browser origin: profiles at `127.0.0.1:5173` will not automatically appear at `localhost:8080`. Container recreation preserves profiles at the same origin, unless browser data is cleared. This is static local hosting; it does not add accounts, cloud storage or network multiplayer. This configuration is for local HTTP use; a public deployment would also need TLS and suitable hosting configuration.
+Local browser profiles remain in localStorage, not a container volume. A different hostname or port is a different browser origin: local profiles at `127.0.0.1:5173` will not automatically appear at `localhost:8080`, but signing in brings an account's profile to either. Container recreation preserves local profiles at the same origin, unless browser data is cleared. There is no network multiplayer yet. This configuration is for local HTTP use; a public deployment would also need TLS (then `COOKIE_SECURE=true`) and suitable hosting configuration.
 
 ## Local development with Gradle
 
@@ -113,6 +137,15 @@ $env:JAVA_HOME = 'C:\dev\tools\jdk-21.0.12.1'
 .\gradlew.bat dev     # Start the local browser preview; Ctrl+C stops it
 ```
 
+Accounts in development: the preview forwards `/api` to `http://127.0.0.1:3000` (override with `API_PROXY_TARGET`). Start PostgreSQL with `docker compose up -d db`, publish its port or use your own PostgreSQL, then run the API in a second terminal:
+
+```powershell
+$env:DATABASE_URL = 'postgres://tetris:<password>@127.0.0.1:5432/tetris'
+.\gradlew.bat server   # or: npm run server
+```
+
+Without the API the game runs normally and the account page says the server can't be reached. `npm test` skips the API tests unless `TEST_DATABASE_URL` points to an empty, disposable database (its tables are dropped).
+
 macOS / Linux: use `./gradlew build` and `./gradlew dev` (if needed, `chmod +x gradlew` once). `gradlew test` runs the tests, `gradlew clean` removes generated output, and `gradlew clean build` performs a fresh production build. Windows uses `.\gradlew.bat` for the same tasks.
 
 Gradle coordinates the frontend build; the existing npm scripts and Vite compiler remain underneath. `npmInstall` uses `npm ci` when package inputs change; `frontendBuild` supports incremental builds. Tests run on every `build` or `test`. `clean` preserves installed dependencies and local browser profiles. Stop a running preview before reinstalling dependencies on Windows to avoid executable file locks.
@@ -121,7 +154,7 @@ Gradle coordinates the frontend build; the existing npm scripts and Vite compile
 
 Arrow keys move, rotate and soft-drop. Space hard-drops, C holds, and P or Escape pauses. Touch buttons are available on smaller screens. Losing browser focus automatically pauses play.
 
-Use **Make it yours** to choose dark/light appearance, three piece palettes, starting difficulty 1–10, animations, grid, ghost piece, sound and volume. Preferences, profile name and personal best are saved in this browser using localStorage. These settings belong to one local profile; clearing browser data clears them. No backend, account or network multiplayer is used. Line sounds are synthesized with Web Audio. Fonts fall back to system sans-serif without network access.
+Use **Make it yours** to choose dark/light appearance, three piece palettes, starting difficulty 1–10, animations, grid, ghost piece, sound and volume. Preferences, profile name and personal best are saved in this browser using localStorage. These settings belong to one local profile; clearing browser data clears them. Signing in is optional; without an account nothing leaves the browser. There is no network multiplayer yet. Line sounds are synthesized with Web Audio. Fonts fall back to system sans-serif without network access.
 
 Scoring: 100/300/500/800 × level for clearing 1/2/3/4 lines, 1 per soft-drop cell and 2 per hard-drop cell. Speed increases every 10 lines to level 10. Pieces use a shuffled seven-bag randomizer.
 

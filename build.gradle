@@ -19,7 +19,7 @@ tasks.register('npmInstall', Exec) {
 
 tasks.register('test', Exec) {
     group = 'verification'
-    description = 'Run the game, profile, logging and metrics tests.'
+    description = 'Run the game, profile, logging, metrics and account tests (API tests need TEST_DATABASE_URL).'
     dependsOn 'npmInstall'
     workingDir = projectDir
     commandLine npmCommand(['test'])
@@ -33,7 +33,8 @@ tasks.register('frontendBuild', Exec) {
     workingDir = projectDir
     commandLine npmCommand(['run', 'build'])
     inputs.dir('src')
-    inputs.files('package.json', 'package-lock.json', 'tsconfig.json', 'index.html')
+    inputs.dir('server')
+    inputs.files('package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.server.json', 'index.html')
     inputs.files(fileTree('.') { include 'vite.config.*', '.env', '.env.local', '.env.production', '.env.production.local' })
     // Vite also accepts environment variables supplied by CI or the shell.
     inputs.property('viteEnvironment', providers.environmentVariablesPrefixedBy('VITE_'))
@@ -44,6 +45,14 @@ tasks.named('check') { dependsOn 'test' }
 tasks.named('assemble') { dependsOn 'frontendBuild' }
 tasks.named('clean', Delete) {
     delete 'dist', 'tsconfig.tsbuildinfo'
+}
+
+tasks.register('server', Exec) {
+    group = 'application'
+    description = 'Run the account API (needs DATABASE_URL; Ctrl+C to stop).'
+    dependsOn 'npmInstall'
+    workingDir = projectDir
+    commandLine npmCommand(['run', 'server'])
 }
 
 tasks.register('dev', Exec) {

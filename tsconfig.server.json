@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "strict": true
+  },
+  "include": [
+    "server/src",
+    "src/accounts/rules.ts",
+    "src/profiles/profiles.ts",
+    "src/ui/palettes.ts"
+  ],
+  "exclude": ["**/*.test.ts"]
+}

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { BoardPrompt } from './components/BoardFrame.tsx';
+import { isAccountProfileId } from './accounts/rules.ts';
+import { useAccount, type Account } from './accounts/useAccount.ts';
+import { AccountPage } from './components/AccountPage.tsx';
 import { GUEST_SEAT, Lobby } from './components/Lobby.tsx';
 import { MatchResultStrip, MatchRulesStrip } from './components/MatchPanels.tsx';
 import { Navigation, type MenuItem } from './components/Navigation.tsx';
@@ -65,10 +68,29 @@ function newGuestSeat(seats: ExtraSeat[]): ExtraSeat {
 }
 
 /**
+ * Checks for a signed-in account before the game starts, so a crash-recovery save that
+ * includes the account's board can be offered straight away.
+ */
+export function App() {
+  const account = useAccount();
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (account.status !== 'checking') setReady(true);
+  }, [account.status]);
+  if (!ready)
+    return (
+      <div className="app-loading" role="status">
+        Loading…
+      </div>
+    );
+  return <Game account={account} />;
+}
+
+/**
  * Top level: profiles and the lobby, plus the play session (solo, or 2–4 shared-screen seats
  * playing alternating turns or simultaneously), navigation and crash recovery.
  */
-export function App() {
+function Game({ account }: { account: Account }) {
   // ── Profiles ───────────────────────────────────────────────────────────────
   const [profiles, setProfiles] = useState<Profile[]>(() => {
     try {
@@ -98,11 +120,17 @@ export function App() {
     }
   }, [profiles]);
 
+  /** The signed-in account plays as a profile kept in memory and saved to the server. */
+  const accountProfile = account.profile;
+  const allProfiles = accountProfile ? [accountProfile, ...profiles] : profiles;
   const activeProfile =
-    guest?.id === selectedId ? guest : (profiles.find((p) => p.id === selectedId) ?? profiles[0]);
+    guest?.id === selectedId
+      ? guest
+      : (allProfiles.find((p) => p.id === selectedId) ?? profiles[0]);
   const players: Profile[] = [activeProfile];
   for (const seat of extraSeats) {
-    const profile = seat.kind === 'guest' ? seat.profile : profiles.find((p) => p.id === seat.id);
+    const profile =
+      seat.kind === 'guest' ? seat.profile : allProfiles.find((p) => p.id === seat.id);
     if (profile && !players.some((p) => p.id === profile.id)) players.push(profile);
   }
   const isMultiplayer = players.length > 1;
@@ -126,7 +154,9 @@ export function App() {
           s.kind === 'guest' && s.profile.id === profile.id ? { ...s, profile } : s,
         ),
       );
-    else setProfiles((all) => all.map((p) => (p.id === profile.id ? profile : p)));
+    else if (isAccountProfileId(profile.id)) {
+      if (profile.id === accountProfile?.id) account.updateProfile(profile);
+    } else setProfiles((all) => all.map((p) => (p.id === profile.id ? profile : p)));
   }
 
   /** A profile can sit in only one seat: an extra seat holding it becomes a guest. */
@@ -142,6 +172,8 @@ export function App() {
     setSelectedId(id);
     setGuest(null);
     freeSeatsUsing(id);
+    // The account is never remembered in local storage; it is re-selected after signing in.
+    if (isAccountProfileId(id)) return;
     try {
       localStorage.setItem(STORAGE_KEYS.activeProfile, id);
     } catch {
@@ -234,8 +266,24 @@ export function App() {
 
   const recovery = useRecovery(
     { playing, players, turn, style: playStyle, rules },
-    profiles.map((p) => p.id),
+    allProfiles.map((p) => p.id),
   );
+
+  // Signing in seats the account as the first player.
+  const accountId = accountProfile?.id;
+  useEffect(() => {
+    if (accountId && !playing) selectProfile(accountId);
+  }, [accountId]);
+
+  /** Ends the session and removes the account's data from this browser. */
+  async function signOut() {
+    const id = accountProfile?.id;
+    await account.signOut();
+    if (!id) return;
+    recovery.forget(id);
+    setExtraSeats((seats) => seats.filter((s) => !(s.kind === 'profile' && s.id === id)));
+    if (selectedId === id) setSelectedId(readStoredActiveProfile(profiles[0].id));
+  }
 
   // Shrinking the window below a readable size pauses play until the layout is adjusted.
   useEffect(() => {
@@ -389,12 +437,19 @@ export function App() {
         return saved ? { ...saved, best: Math.max(p.best, saved.best) } : p;
       }),
     );
+    const savedAccount = savedProfiles.find((p) => p.id === accountProfile?.id);
+    if (savedAccount && accountProfile)
+      account.updateProfile({
+        ...savedAccount,
+        best: Math.max(accountProfile.best, savedAccount.best),
+      });
     const [first, ...others] = savedProfiles;
     setSelectedId(first.id);
     setGuest(isGuestId(first.id) ? first : null);
     setExtraSeats(
-      others.map((p): ExtraSeat =>
-        isGuestId(p.id) ? { kind: 'guest', profile: p } : { kind: 'profile', id: p.id },
+      others.map(
+        (p): ExtraSeat =>
+          isGuestId(p.id) ? { kind: 'guest', profile: p } : { kind: 'profile', id: p.id },
       ),
     );
     setPlayStyle(match.style ?? 'turns');
@@ -458,8 +513,15 @@ export function App() {
       <Navigation
         active={playing ? (!isMultiplayer ? 'Single' : isVersus ? 'Versus' : 'Players') : menu}
         onNavigate={navigate}
+        accountLabel={account.account?.username}
       />
-      {scoresOpen && <ScoresDialog profiles={profiles} onClose={() => setScoresOpen(false)} />}
+      {scoresOpen && (
+        <ScoresDialog
+          profiles={allProfiles}
+          accountProfileId={accountProfile?.id}
+          onClose={() => setScoresOpen(false)}
+        />
+      )}
       {recovery.pending && (
         <RecoveryPrompt
           match={recovery.pending}
@@ -478,12 +540,23 @@ export function App() {
     </>
   );
 
+  if (!playing && menu === 'Account')
+    return (
+      <>
+        {chrome}
+        <AccountPage account={account} onPlay={() => setMenu('Players')} onSignOut={signOut} />
+      </>
+    );
+
   if (!playing)
     return (
       <>
         {chrome}
         <Lobby
-          profiles={profiles}
+          profiles={allProfiles}
+          accountProfileId={accountProfile?.id}
+          accountStatus={account.status}
+          onOpenAccount={() => setMenu('Account')}
           selectedId={selectedId}
           guestSelected={guest !== null && guest.id === selectedId}
           players={players}
